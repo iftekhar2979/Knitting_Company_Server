@@ -1,0 +1,156 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  content   String?
+  published Boolean  @default(false)
+  authorId  Int
+  User      User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Profile {
+  id     Int     @id @default(autoincrement())
+  bio    String? @db.VarChar(255)
+  jobTitle String?  @db.VarChar(255)
+  description String? @db.VarChar(255)
+  userId Int     @unique
+  User   User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model User {
+  id      Int      @id @default(autoincrement())
+  name    String?  @db.VarChar(255)
+  email   String?   @unique @db.VarChar(255)
+  password String? 
+  isAdmin Boolean  @default(false)
+  role    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime? @updatedAt @db.Timestamp(6)
+  isBlock Boolean @default(false)
+  Post    Post[]
+  user Order[]
+  Profile Profile?
+}
+
+model Company {
+  id           Int      @id @default(autoincrement())
+  companyName  String    @unique @db.VarChar(255)
+  location     String   @db.VarChar(255)
+  email        String?  @unique @db.VarChar(255)
+  contact      String?  @db.VarChar(255)
+  buyers       Buyer[]  @relation("CompanyBuyers")
+
+  orderWithCompanyNames Order[]
+}
+
+model Buyer {
+  id            Int      @id @default(autoincrement())
+  buyerName     String?
+  companyId     Int
+  orders Order[]
+  company       Company  @relation("CompanyBuyers", fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+// FabricsType model
+model FabricsType {
+  id          Int     @id @default(autoincrement())
+  fabricsName String
+  description String?
+  orders Order[]
+}
+
+// Order model
+model Order {
+  id                Int      @id @default(autoincrement())
+  orderNumber       String   @unique @db.VarChar(255)
+  companyId   Int 
+  buyerId Int?
+  companyName String?
+  fabricsName    String 
+  fabricsId Int?
+  buyerName      String
+  season         String?
+  pmNumber       String?
+  poNumber       String?
+  boNumber       String?
+  invoiceNumber  String?
+  orderedDate    DateTime @default(now()) @db.Timestamp(6)
+  targetDate     DateTime?
+  createdAt      DateTime @default(now()) @db.Timestamp(6)
+  orderQuantity  Float
+  restQuantity   Float
+  updatedAt      DateTime?
+  status         String?
+  userId  Int? 
+  details OrderDetails?
+  yarnDetails YarnDetails?
+  user User? @relation(fields:[userId], references:[id],onDelete:NoAction)
+  buyer Buyer? @relation(fields:[buyerId],references:[id],onDelete:Cascade)
+  fabricsType FabricsType? @relation(fields:[fabricsId],references:[id],onDelete:Cascade)
+  company Company @relation(fields:[companyId],references:[id],onDelete: Cascade)
+  deliveryDetails DeliveryDetails[]
+}
+
+// OrderDetails model
+model OrderDetails {
+  id                  Int     @id @default(autoincrement())
+  orderId Int? @unique
+  style            String?
+  yarnCount        String?
+  yarnBrand        String?
+  yarnLot          String?
+  lycraCount       String?
+  lycraBrand       String?
+  lycraLot         String?
+  polyStarCount    String?
+  polyStarBrand    String?
+  polyStarLot      String?
+  mc_DIA           String?
+  e_DIA            String?
+  f_GSM            String?
+  sl               String?
+  colour           String?
+  deliveredQuantity Float
+  restQuantity     Float
+  order  Order? @relation(fields:[orderId],references:[id])
+
+}
+
+// YarnDetails model
+model YarnDetails {
+  id                  Int     @id @default(autoincrement())  
+  bookingQuantity   Float     
+  receivedQuantity  Float     
+  restQuantity      Float
+  orderId Int? @unique
+  order  Order? @relation(fields:[orderId],references:[id], onDelete:Cascade)
+
+}
+model DeliveryDetails{
+  id               Int     @id @default(autoincrement()) 
+  orderId Int
+  deliveredQuantity Float
+  createdAt      DateTime @default(now()) @db.Timestamp(6)
+  deliveredBy String?
+  order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
+}
+
+model book_stores {
+   id Int @id @default(autoincrement())
+   name String @db.VarChar(255) @unique
+   address String?
+   link String?
+   subscribers Int @default(0)
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
+}
