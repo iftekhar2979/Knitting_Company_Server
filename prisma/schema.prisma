@@ -49,6 +49,7 @@ model Company {
   location     String   @db.VarChar(255)
   email        String?  @unique @db.VarChar(255)
   contact      String?  @db.VarChar(255)
+  yarnDetails YarnDetails[]
   buyers       Buyer[]  @relation("CompanyBuyers")
 
   orderWithCompanyNames Order[]
@@ -129,11 +130,16 @@ model OrderDetails {
 // YarnDetails model
 model YarnDetails {
   id                  Int     @id @default(autoincrement())  
+  companyId         Int?
   bookingQuantity   Float     
   receivedQuantity  Float     
   restQuantity      Float
+  yarn            String?
+  createdAt      DateTime @default(now()) @db.Timestamp(6)
   orderId Int? @unique
   order  Order? @relation(fields:[orderId],references:[id], onDelete:Cascade)
+  company       Company?  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
 
 }
 model DeliveryDetails{
