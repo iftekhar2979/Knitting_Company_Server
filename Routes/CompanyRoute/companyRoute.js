@@ -5,7 +5,7 @@ const router = express.Router()
 router.get('/company',getAllCompanyWithBuyers)
 router.get('/company/:id',getSingleCompany)
 router.post('/company',createCompany)
-router.patch('/company',updateCompany)
-router.delete('/company',removeCompany)
+router.patch('/company/:id',updateCompany)
+router.delete('/company/:id',removeCompany)
 
 module.exports=router

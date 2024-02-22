@@ -3,15 +3,12 @@ const {PrismaClient}=require('@prisma/client')
 const prisma = new PrismaClient()
 
 
-const getSingleCompany = async (req, res) => {
-    const companyId =parseFloat(req.params.id)
+const getSingleProduct = async (req, res) => {
+    const fabricsId =parseFloat(req.params.id)
     try {
-        const companyWithBuyers = await prisma.company.findFirst({
+        const companyWithBuyers = await prisma.fabricsType.findFirst({
             where: {
-                id: companyId,
-            },
-            include: {
-                buyers: true,
+                id: fabricsId,
             },
         });
         res.send(companyWithBuyers);
@@ -19,32 +16,28 @@ const getSingleCompany = async (req, res) => {
         res.send(error);
     }
 }
- const getAllCompanyWithBuyers = async (req, res) => {
+ const getAllProduct = async (req, res) => {
     try {
-        const companiesWithBuyers = await prisma.company.findMany({
-            include: {
-                buyers: true,
-            },
+        const fabricsTypes = await prisma.fabricsType.findMany({  
         });
-        res.status(200).send(companiesWithBuyers);
+        res.status(200).send(fabricsTypes);
     } catch (error) {
        return HandleError(404,error,res)
     }
 }
-const createCompany=async(req,res)=>{
+const createProduct=async(req,res)=>{
     const body=req.body
-    console.log(body)
     try {
-        const newCompany = await prisma.company.create({
+        const newfabricsType = await prisma.fabricsType.create({
            data:body
         });
-       return res.status(200).send(newCompany);
+       return res.status(200).send(newfabricsType);
     } catch (error) {
         console.log(error)
         return  res.send(error.message);
     }
 }
-const updateCompany = async (req, res) => {
+const updateProduct = async (req, res) => {
     const id=parseFloat(req.params.id)
     const updatedBody = req.body
     try {
@@ -61,22 +54,20 @@ const updateCompany = async (req, res) => {
     }
     
 }
-const removeCompany=async(req,res)=>{
+const removeProduct=async(req,res)=>{
     const id=parseFloat(req.params.id)
-    console.log(id)
-    
     try {
-        const removeCompany = await prisma.company.delete({
+        const removefabricsType = await prisma.fabricsType.delete({
             where:{
                 id:id
             },
            
         });
-        return res.status(200).send({isDeleted:true, removeCompany});
+        return res.status(200).send({isDeleted:true, removefabricsType});
     } catch (error) {
         console.log(error)
         return res.status(400).send({isDeleted:false ,error:error.message});
     }
     
 }
-module.exports={getSingleCompany,getAllCompanyWithBuyers,createCompany,updateCompany,removeCompany}
+module.exports={getSingleProduct,getAllProduct,createProduct,updateProduct,removeProduct}
