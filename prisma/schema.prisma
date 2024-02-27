@@ -121,8 +121,6 @@ model OrderDetails {
   f_GSM            String?
   sl               String?
   colour           String?
-  deliveredQuantity Float
-  restQuantity     Float
   order  Order? @relation(fields:[orderId],references:[id])
 
 }

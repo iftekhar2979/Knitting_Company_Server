@@ -3,11 +3,11 @@ const prisma = new PrismaClient()
 const getAllOrder = async (req, res) => {
     try {
         const orders = await prisma.order.findMany({
-            include: {
-                company: true,
-                details: true,
-                yarnDetails: true
-            }
+            orderBy: [
+                {
+                  createdAt: 'desc',
+                },
+              ],
         });
         res.send(orders);
     } catch (error) {
@@ -21,6 +21,28 @@ const getSingleOrder = async (req, res) => {
             where: {
                 id: orderId
             },
+            include: {
+                company:true
+                
+            },
+        });
+        res.status(200).send(orders);
+    } catch (error) {
+        res.status(404).send(error);
+    }
+}
+const getSingleOrderQuantityInfo = async (req, res) => {
+    const orderId = parseFloat(req.params.id)
+    try {
+        const orders = await prisma.order.findUnique({
+            where: {
+                id: orderId
+            },
+            select:{
+                orderQuantity:true,
+                restQuantity:true,
+                status:true,
+            }
         });
         res.status(200).send(orders);
     } catch (error) {
@@ -92,4 +114,4 @@ const findOrderWithPo = async (req, res) => {
         res.send(error);
     }
 }
-module.exports = { getAllOrder, findOrderWithPo, getSingleOrder, createOrder,updateOrder,removeOrder }
+module.exports = { getAllOrder, findOrderWithPo,getSingleOrderQuantityInfo, getSingleOrder, createOrder,updateOrder,removeOrder }
