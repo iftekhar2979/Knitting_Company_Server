@@ -1,41 +1,45 @@
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
-const getSingleOrderDetails = async (req, res) => {
+const getSingleYarnDetails = async (req, res) => {
     const orderId = parseFloat(req.params.id)
-    console.log(orderId)
+
     try {
-        const orders = await prisma.orderDetails.findUnique({
+        const yarns = await prisma.yarnInformation.findMany({
             where: {
                 orderId: orderId
-            },   
+            },  
+            include:{
+                company:true
+            } 
         });
-        console.log(orders)
-        res.status(200).send(orders);
+        console.log(yarns)
+     
+        res.status(200).send(yarns);
     } catch (error) {
         res.status(404).send(error);
     }
 }
 
-const createOrderDetails = async (req, res) => {
-    const orderBody = req.body
-    console.log(orderBody)
+const createYarnDetails = async (req, res) => {
+    const yarnBody = req.body
+    console.log(yarnBody)
     try {
-        const neworderDetails = await prisma.orderDetails.create({
-            data: orderBody
+        const newYarnDetails = await prisma.yarnInformation.create({
+            data:yarnBody
         });
-        return res.status(200).send(neworderDetails);
+        return res.status(200).send(newYarnDetails);
     } catch (error) {
         console.log(error)
         return res.status(400).send(error.message);
     }
 
 }
-const updateOrderDetails = async (req, res) => {
+const updateYarnDetails = async (req, res) => {
     const id=parseFloat(req.params.id)
     const updatedBody = req.body
     try {
-        const updatedOrder = await prisma.orderDetails.update({
+        const updatedOrder = await prisma.yarnInformation.update({
             where:{
                 id:id
             },
@@ -47,10 +51,10 @@ const updateOrderDetails = async (req, res) => {
         return res.status(400).send({isUpdated:false, error:error.message});
     }
 }
-const removeOrderDetails=async(req,res)=>{
+const removeYarnDetails=async(req,res)=>{
     const id=parseFloat(req.params.id)
     try {
-        const updatedOrder = await prisma.orderDetails.delete({
+        const updatedOrder = await prisma.yarnInformation.delete({
             where:{
                 id:id
             },      
@@ -63,4 +67,4 @@ const removeOrderDetails=async(req,res)=>{
     
 }
 
-module.exports = {createOrderDetails,updateOrderDetails,getSingleOrderDetails,removeOrderDetails}
+module.exports = {createYarnDetails,updateYarnDetails,getSingleYarnDetails,removeYarnDetails}

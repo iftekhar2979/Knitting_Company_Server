@@ -49,7 +49,7 @@ model Company {
   location     String   @db.VarChar(255)
   email        String?  @unique @db.VarChar(255)
   contact      String?  @db.VarChar(255)
-  yarnDetails YarnDetails[]
+  yarnDetails yarnInformation[]
   buyers       Buyer[]  @relation("CompanyBuyers")
 
   orderWithCompanyNames Order[]
@@ -94,12 +94,12 @@ model Order {
   status         String?
   userId  Int? 
   details OrderDetails?
-  yarnDetails YarnDetails?
+  yarnDetails yarnInformation[]
+  deliveryDetails DeliveryDetails[]
   user User? @relation(fields:[userId], references:[id],onDelete:NoAction)
   buyer Buyer? @relation(fields:[buyerId],references:[id],onDelete:Cascade)
   fabricsType FabricsType? @relation(fields:[fabricsId],references:[id],onDelete:Cascade)
   company Company @relation(fields:[companyId],references:[id],onDelete: Cascade)
-  deliveryDetails DeliveryDetails[]
 }
 
 // OrderDetails model
@@ -126,20 +126,29 @@ model OrderDetails {
 }
 
 // YarnDetails model
-model YarnDetails {
-  id                  Int     @id @default(autoincrement())  
-  companyId         Int?
-  bookingQuantity   Float     
-  receivedQuantity  Float     
+model yarnInformation{
+  id Int @id @default(autoincrement())
+  companyId Int
+  bookingQuantity   Float        
   restQuantity      Float
-  yarn            String?
+  yarn String?
+  orderId Int
   createdAt      DateTime @default(now()) @db.Timestamp(6)
-  orderId Int? @unique
-  order  Order? @relation(fields:[orderId],references:[id], onDelete:Cascade)
-  company       Company?  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-
+  updatedAt DateTime?
+  yarnInformationWithDetails YarnInformationWithDetails[]
+  order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
+  company Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
+
+//yarn Information on every recieved
+model YarnInformationWithDetails{
+   id Int @id @default(autoincrement())
+   yarnInfoID Int
+   receivedQuantity Float
+   createdAt      DateTime @default(now()) @db.Timestamp(6)
+   yarnInformation yarnInformation @relation(fields:[yarnInfoID],references:[id],onDelete: Cascade) 
+}
+
 model DeliveryDetails{
   id               Int     @id @default(autoincrement()) 
   orderId Int
@@ -147,14 +156,4 @@ model DeliveryDetails{
   createdAt      DateTime @default(now()) @db.Timestamp(6)
   deliveredBy String?
   order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
-}
-
-model book_stores {
-   id Int @id @default(autoincrement())
-   name String @db.VarChar(255) @unique
-   address String?
-   link String?
-   subscribers Int @default(0)
-   createdAt DateTime @default(now())
-   updatedAt DateTime @updatedAt
 }
