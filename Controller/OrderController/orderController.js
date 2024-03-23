@@ -22,7 +22,8 @@ const getSingleOrder = async (req, res) => {
                 id: orderId
             },
             include: {
-                company:true
+                company:true,
+                
                 
             },
         });

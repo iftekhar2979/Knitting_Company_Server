@@ -171,7 +171,27 @@ const getSingleDelivery = async (req, res) => {
                 id: requestedId(req)
             },
             include: {
-                order: true
+                order: {
+                    select:{
+                        boNumber:true,
+                        invoiceNumber:true,   
+                        fabricsName:true,
+                        orderNumber:true,
+                        buyerName:true,
+                        pmNumber:true,
+                        poNumber:true,
+                        season:true,
+                        company:{
+                            select:{
+                                companyName:true,
+                                location:true
+                            }
+                        },
+                        details:true
+                    },
+                    
+                }
+               
             }
         })
         res.status(200).send(findSingleDelivery)
@@ -179,18 +199,14 @@ const getSingleDelivery = async (req, res) => {
         res.status(400).send(error)
 
     }
-
 }
 const GetAllDeliveryforAnSingleOrder = async (req, res) => {
-
     try {
         const findDeliveryforSingleOrder = await prisma.deliveryDetails.findMany({
             where: {
                 orderId: requestedId(req)
             },
-            include: {
-                order: true
-            }
+           
         })
         res.status(200).send(findDeliveryforSingleOrder)
     } catch (error) {
@@ -200,6 +216,7 @@ const GetAllDeliveryforAnSingleOrder = async (req, res) => {
 }
 const createDelivery = async (req, res) => {
     const { from, amount, deliveredBy } = req.body
+    console.log(req.body)
     try {
         const result = await transfer(from, amount, deliveredBy)
         res.status(200).send(result)
