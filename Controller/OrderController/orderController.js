@@ -5,9 +5,9 @@ const getAllOrder = async (req, res) => {
         const orders = await prisma.order.findMany({
             orderBy: [
                 {
-                  createdAt: 'desc',
+                    createdAt: 'desc',
                 },
-              ],
+            ],
         });
         res.send(orders);
     } catch (error) {
@@ -22,9 +22,9 @@ const getSingleOrder = async (req, res) => {
                 id: orderId
             },
             include: {
-                company:true,
-                
-                
+                company: true,
+
+
             },
         });
         res.status(200).send(orders);
@@ -39,10 +39,10 @@ const getSingleOrderQuantityInfo = async (req, res) => {
             where: {
                 id: orderId
             },
-            select:{
-                orderQuantity:true,
-                restQuantity:true,
-                status:true,
+            select: {
+                orderQuantity: true,
+                restQuantity: true,
+                status: true,
             }
         });
         res.status(200).send(orders);
@@ -65,54 +65,60 @@ const createOrder = async (req, res) => {
 
 }
 const updateOrder = async (req, res) => {
-    const id=parseFloat(req.params.id)
+    const id = parseFloat(req.params.id)
     const updatedBody = req.body
     try {
         const updatedOrder = await prisma.order.update({
-            where:{
-                id:id
+            where: {
+                id: id
             },
             data: updatedBody
         });
-        return res.status(200).send({isUpdated:true,updatedOrder});
+        return res.status(200).send({ isUpdated: true, updatedOrder });
     } catch (error) {
         console.log(error)
-        return res.status(400).send({isUpdated:false, error:error.message});
+        return res.status(400).send({ isUpdated: false, error: error.message });
     }
-    
+
 }
-const removeOrder=async(req,res)=>{
-    const id=parseFloat(req.params.id)
-    
+const removeOrder = async (req, res) => {
+    const id = parseFloat(req.params.id)
+
     try {
         const updatedOrder = await prisma.order.delete({
-            where:{
-                id:id
+            where: {
+                id: id
             },
-           
+
         });
-        return res.status(200).send({isDeleted:true, updatedOrder});
+        return res.status(200).send({ isDeleted: true, updatedOrder });
     } catch (error) {
         console.log(error)
-        return res.status(400).send({isDeleted:false ,error:error.message});
+        return res.status(400).send({ isDeleted: false, error: error.message });
     }
-    
+
 }
 const findOrderWithPo = async (req, res) => {
+    const selectedArray=req.body.selectedValues
     try {
-        const orders = await prisma.order.aggregate({
+        const orders = await prisma.order.groupBy({
+            by: ["companyId", "fabricsName"],
             where: {
-                poNumber: '12345'
+                orderNumber: {
+                    in: selectedArray
+                },
+            },
+            include:{
+
             },
             _sum: {
                 orderQuantity: true,
             },
-        });
-        console.log(orders)
+        })
         res.send(orders);
     } catch (error) {
         console.log(error)
         res.send(error);
     }
 }
-module.exports = { getAllOrder, findOrderWithPo,getSingleOrderQuantityInfo, getSingleOrder, createOrder,updateOrder,removeOrder }
+module.exports = { getAllOrder, findOrderWithPo, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }

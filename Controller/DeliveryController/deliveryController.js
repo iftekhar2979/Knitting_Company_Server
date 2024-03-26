@@ -6,6 +6,7 @@ const prisma = new PrismaClient()
 
 
 function transfer(from, amount, deliveredBy) {
+    let status=""
     return prisma.$transaction(async (tx) => {
 
         // 1. Fetch the current order to check its quantity before updating
@@ -18,6 +19,13 @@ function transfer(from, amount, deliveredBy) {
         if (!currentOrder) {
             throw new Error(`Order with id ${from} does not exist`);
         }
+        if (currentOrder?.restQuantity === amount) {
+           status="Fullfilled"
+        }
+        if (currentOrder?.restQuantity > amount) {
+            status="Pending"
+         }
+ 
 
         if (currentOrder.restQuantity < amount) {
             throw new Error(`Order ${from} does not have enough quantity to transfer. Required: ${amount}, available: ${currentOrder.orderQuantity}`);
@@ -35,6 +43,7 @@ function transfer(from, amount, deliveredBy) {
                 restQuantity: {
                     decrement: amount,
                 },
+                status:status
             },
         });
         const deliveryDetail = await tx.deliveryDetails.create({
@@ -50,6 +59,7 @@ function transfer(from, amount, deliveredBy) {
 }
 
 function transferFromDelivery(from) {
+    let status="Pending"
     return prisma.$transaction(async (tx) => {
         const currentDelivery = await tx.deliveryDetails.findUnique({
             where: {
@@ -72,6 +82,7 @@ function transferFromDelivery(from) {
                 restQuantity: {
                     increment: currentDelivery.deliveredQuantity,
                 },
+                status:status
             },
         });
         // 2. delete the delivery
@@ -155,7 +166,27 @@ const getAllDelivery = async (req, res) => {
     try {
         const findDeliveries = await prisma.deliveryDetails.findMany({
             include: {
-                order: true
+                order: {
+                    select:{
+                        boNumber:true,
+                        invoiceNumber:true,   
+                        fabricsName:true,
+                        orderNumber:true,
+                        buyerName:true,
+                        pmNumber:true,
+                        poNumber:true,
+                        season:true,
+                        company:{
+                            select:{
+                                companyName:true,
+                                location:true
+                            }
+                        },
+                        details:true
+                    },
+                    
+                }
+               
             }
         })
         res.status(200).send(findDeliveries)
@@ -215,10 +246,10 @@ const GetAllDeliveryforAnSingleOrder = async (req, res) => {
     }
 }
 const createDelivery = async (req, res) => {
-    const { from, amount, deliveredBy } = req.body
+    const { from, amount, deliveredBy,status } = req.body
     console.log(req.body)
     try {
-        const result = await transfer(from, amount, deliveredBy)
+        const result = await transfer(from, amount, deliveredBy,status)
         res.status(200).send(result)
         // return res.status(200).send(transfer(from, amount, deliveredBy))
     } catch (error) {
