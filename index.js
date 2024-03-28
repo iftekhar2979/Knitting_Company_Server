@@ -10,6 +10,7 @@ const buyerRoute=require("./Routes/BuyerRoute/buyerRoute")
 const productRoute=require("./Routes/ProductRoute/productRoute")
 const orderDetails=require("./Routes/OrderRoute/OrderDetailsRoute/orderDetailsRoute")
 const yarnDetails=require('./Routes/OrderRoute/YarnRoute/yarnDetailsRoute')
+const invoiceRoute=require("./Routes/InvoiceRoute/invoiceRoute")
 const app = express();
 app.use(express.json())
 const prisma = new PrismaClient();
@@ -26,6 +27,7 @@ app.use(buyerRoute)
 app.use(productRoute)
 app.use(orderDetails)
 app.use(yarnDetails)
+app.use(invoiceRoute)
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)

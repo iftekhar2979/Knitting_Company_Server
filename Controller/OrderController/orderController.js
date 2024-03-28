@@ -14,6 +14,28 @@ const getAllOrder = async (req, res) => {
         res.send(error);
     }
 }
+const getAllOrderForInvoice = async (req, res) => {
+    try {
+        const orders = await prisma.order.findMany({
+            orderBy: [
+                {
+                    createdAt: 'desc',
+                },
+            ],
+            select:{
+                id:true,
+                companyName:true,
+                orderNumber:true,
+                fabricsName:true,
+                orderQuantity:true,
+                isProformaInvoiceCreated:true
+            }
+        });
+        res.send(orders);
+    } catch (error) {
+        res.send(error);
+    }
+}
 const getSingleOrder = async (req, res) => {
     const orderId = parseFloat(req.params.id)
     try {
@@ -99,26 +121,61 @@ const removeOrder = async (req, res) => {
 
 }
 const findOrderWithPo = async (req, res) => {
-    const selectedArray=req.body.selectedValues
+   
     try {
-        const orders = await prisma.order.groupBy({
-            by: ["companyId", "fabricsName"],
+        const ordersCheck = await prisma.order.findMany({
             where: {
                 orderNumber: {
-                    in: selectedArray
+                    in: req.body, // Assuming req.body.orderNumbers is your array of orderNumbers
                 },
             },
-            include:{
+            select: {
+                companyId: true,
+                buyerId:true
+            },
+            distinct: ["companyId","buyerId"],
+        });
 
+        // Step 2: If more than one companyId is found, throw an error
+        if (ordersCheck.length > 1) { 
+          return  res.status(404).send("Order numbers belong to different companies and Different Buyers");
+            // throw new Error("Order numbers belong to different companies and Different Buyers");
+        }
+        const orders = await prisma.order.groupBy({
+            by: ["companyId", "fabricsName","buyerId","fabricsId"],
+            where: {
+                orderNumber: {
+                    in: req.body
+                }, 
             },
             _sum: {
                 orderQuantity: true,
             },
         })
-        res.send(orders);
+       return res.status(200).send(orders);
     } catch (error) {
         console.log(error)
-        res.send(error);
+       return res.status(404).send(error);
     }
 }
-module.exports = { getAllOrder, findOrderWithPo, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }
+// const findOrderWithPo = async (req, res) => {
+   
+//     try {
+//         const orders = await prisma.order.findMany({
+           
+//             where: {
+//                 orderNumber: {
+//                     in: req.body
+//                 }, 
+//             },
+//             // _sum: {
+//             //     orderQuantity: true,
+//             // },
+//         })
+//         res.send(orders);
+//     } catch (error) {
+//         console.log(error)
+//         res.send(error);
+//     }
+// }
+module.exports = { getAllOrder, findOrderWithPo,getAllOrderForInvoice, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }
