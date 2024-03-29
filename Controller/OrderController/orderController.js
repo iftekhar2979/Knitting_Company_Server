@@ -28,6 +28,7 @@ const getAllOrderForInvoice = async (req, res) => {
                 orderNumber:true,
                 fabricsName:true,
                 orderQuantity:true,
+                buyerName:true,
                 isProformaInvoiceCreated:true
             }
         });
