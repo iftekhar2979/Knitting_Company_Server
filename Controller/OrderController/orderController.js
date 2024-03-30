@@ -22,14 +22,14 @@ const getAllOrderForInvoice = async (req, res) => {
                     createdAt: 'desc',
                 },
             ],
-            select:{
-                id:true,
-                companyName:true,
-                orderNumber:true,
-                fabricsName:true,
-                orderQuantity:true,
-                buyerName:true,
-                isProformaInvoiceCreated:true
+            select: {
+                id: true,
+                companyName: true,
+                orderNumber: true,
+                fabricsName: true,
+                orderQuantity: true,
+                buyerName: true,
+                isProformaInvoiceCreated: true
             }
         });
         res.send(orders);
@@ -47,6 +47,25 @@ const getSingleOrder = async (req, res) => {
             include: {
                 company: true,
 
+            },
+        });
+        res.status(200).send(orders);
+    } catch (error) {
+        res.status(404).send(error);
+    }
+}
+const getSingleOrderForEdit = async (req, res) => {
+    const orderId = parseFloat(req.params.id)
+    try {
+        const orders = await prisma.order.findUnique({
+            where: {
+                id: orderId
+            },
+            include: {
+                company: true,
+                buyer:true,
+                fabricsType:true,
+                details: true
 
             },
         });
@@ -122,7 +141,7 @@ const removeOrder = async (req, res) => {
 
 }
 const findOrderWithPo = async (req, res) => {
-   
+
     try {
         const ordersCheck = await prisma.order.findMany({
             where: {
@@ -132,38 +151,39 @@ const findOrderWithPo = async (req, res) => {
             },
             select: {
                 companyId: true,
-                buyerId:true
+                buyerId: true,
+                
             },
-            distinct: ["companyId","buyerId"],
+            distinct: ["companyId", "buyerId"],
         });
 
         // Step 2: If more than one companyId is found, throw an error
-        if (ordersCheck.length > 1) { 
-          return  res.status(404).send("Order numbers belong to different companies and Different Buyers");
+        if (ordersCheck.length > 1) {
+            return res.status(404).send("Order numbers belong to different companies and Different Buyers");
             // throw new Error("Order numbers belong to different companies and Different Buyers");
         }
         const orders = await prisma.order.groupBy({
-            by: ["companyId", "fabricsName","buyerId","fabricsId"],
+            by: ["companyId", "fabricsName", "buyerId", "fabricsId"],
             where: {
                 orderNumber: {
                     in: req.body
-                }, 
+                },
             },
             _sum: {
                 orderQuantity: true,
             },
         })
-       return res.status(200).send(orders);
+        return res.status(200).send(orders);
     } catch (error) {
         console.log(error)
-       return res.status(404).send(error);
+        return res.status(404).send(error);
     }
 }
 // const findOrderWithPo = async (req, res) => {
-   
+
 //     try {
 //         const orders = await prisma.order.findMany({
-           
+
 //             where: {
 //                 orderNumber: {
 //                     in: req.body
@@ -179,4 +199,4 @@ const findOrderWithPo = async (req, res) => {
 //         res.send(error);
 //     }
 // }
-module.exports = { getAllOrder, findOrderWithPo,getAllOrderForInvoice, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }
+module.exports = { getAllOrder, findOrderWithPo,getSingleOrderForEdit, getAllOrderForInvoice, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }

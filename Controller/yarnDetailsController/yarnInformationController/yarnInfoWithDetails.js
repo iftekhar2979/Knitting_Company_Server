@@ -48,13 +48,15 @@ function transferFromReceived(from) {
                 id: from,
             },
         });
+       
         if (!currentReceivedBooking) {
             throw new Error(`delivery with id ${from} does not exist`);
         }
+        
         // 2. Increment amount of (order).
         const updatedCurrentYarnInfo = await tx.yarnInformation.update({
             where: {
-                id: from,
+                id: currentReceivedBooking?.yarnInfoID,
             },
             data: {
                 restQuantity: {
@@ -63,8 +65,9 @@ function transferFromReceived(from) {
                 updatedAt: new Date(),
             },
         });
+       
         // 2. delete the yarn Receiving details
-        const newYarnRecevingDetails = await tx.yarnInformationWithDetails.findAndDelete({
+        const newYarnRecevingDetails = await tx.yarnInformationWithDetails.delete({
             where: {
                 id: from,
             },
@@ -83,7 +86,8 @@ const yarnRecevied = async (req, res) => {
     }
 }
 const receivedYarnDeleted = async (req, res) => {
-    let from = parseFloat(req.param.id)
+    let from = parseFloat(req.params.id)
+    
     try {
         const result = await transferFromReceived(from)
         res.status(200).send({ result, isDeleted: true })
