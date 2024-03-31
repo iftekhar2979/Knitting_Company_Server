@@ -6,10 +6,8 @@ const jwt=require('jsonwebtoken')
     const token = jwt.sign({ email }, process.env.JWT_SECRET, {
       expiresIn: "30d",
     });
-  console.log(token,'from toekn')
-  console.log(process.env.NODE_ENV)
     res.cookie("jwt", token, {
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV==="Production",
       sameSite: process.env.NODE_ENV==="Production"?"None":"Strict",
       maxAge: 30 * 24 * 60 * 60 * 1000,

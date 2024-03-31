@@ -14,16 +14,16 @@ const invoiceRoute=require("./Routes/InvoiceRoute/invoiceRoute")
 const app = express();
 app.use(express.json())
 const prisma = new PrismaClient();
-// let corsOptions ;
-// if(process.env.NODE_ENV==="Production"){
-//   corsOptions = {
-//     credentials: true, origin:process.env.ORIGIN_URL
-//   };
-// }else{
-//   corsOptions = {
-//     credentials: true, origin:true
-//   };
-// }
+let corsOptions ;
+if(process.env.NODE_ENV==="Production"){
+  corsOptions = {
+    credentials: true, origin:process.env.ORIGIN_URL
+  };
+}else{
+  corsOptions = {
+    credentials: true, origin:true
+  };
+}
 
 app.use(cors({
   credentials: true, origin:true
