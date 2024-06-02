@@ -3,12 +3,13 @@
 
 generator client {
   provider = "prisma-client-js"
-  binaryTargets =["native"]
+  binaryTargets = ["native"]
 }
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+
 }
 model Post {
   id        Int      @id @default(autoincrement())
@@ -46,7 +47,7 @@ model User {
 
 model Company {
   id           Int      @id @default(autoincrement())
-  companyName  String    @unique @db.VarChar(255)
+  companyName  String   @unique @db.VarChar(255)
   location     String   @db.VarChar(255)
   email        String?  @unique @db.VarChar(255)
   contact      String?  @db.VarChar(255)
@@ -65,6 +66,7 @@ model Buyer {
   proformaInvoices  ProformaInvoice[]
   company       Company  @relation("CompanyBuyers", fields: [companyId], references: [id], onDelete:Cascade, onUpdate: NoAction)
 }
+
 // FabricsType model
 model FabricsType {
   id          Int     @id @default(autoincrement())
@@ -85,15 +87,16 @@ model Order {
   fabricsId Int?
   buyerName      String
   season         String?
-  pmNumber       String?
-  poNumber       String?
-  boNumber       String?
-  invoiceNumber  String?
+  programNumber    String?
+  jobNumber       String?
+  bookingNumber   String?
+  sbNumber        String?
   orderedDate    DateTime @default(now()) @db.Timestamp(6)
   targetDate     DateTime?
   createdAt      DateTime @default(now()) @db.Timestamp(6)
   orderQuantity  Float
   restQuantity   Float
+  unit           String
   updatedAt      DateTime?
   status         String?
   isProformaInvoiceCreated Boolean  @default(false)
@@ -110,8 +113,8 @@ model Order {
 
 // OrderDetails model
 model OrderDetails {
-  id                  Int     @id @default(autoincrement())
-  orderId Int? @unique
+  id               Int     @id @default(autoincrement())
+  orderId          Int? @unique
   style            String?
   yarnCount        String?
   yarnBrand        String?
@@ -128,19 +131,18 @@ model OrderDetails {
   sl               String?
   colour           String?
   order  Order? @relation(fields:[orderId],references:[id])
-
 }
 
 // YarnDetails model
 model yarnInformation{
   id Int @id @default(autoincrement())
-  companyId Int
+  companyId         Int
   bookingQuantity   Float        
   restQuantity      Float
-  yarn String?
-  orderId Int
-  createdAt      DateTime @default(now()) @db.Timestamp(6)
-  updatedAt DateTime?
+  yarn              String?
+  orderId           Int
+  createdAt         DateTime @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime?
   yarnInformationWithDetails YarnInformationWithDetails[]
   order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
   company Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -148,24 +150,26 @@ model yarnInformation{
 
 //yarn Information on every recieved
 model YarnInformationWithDetails{
-   id Int @id @default(autoincrement())
-   yarnInfoID Int
+   id               Int @id @default(autoincrement())
+   yarnInfoID       Int
    receivedQuantity Float
-   createdAt      DateTime @default(now()) @db.Timestamp(6)
-   yarnInformation yarnInformation @relation(fields:[yarnInfoID],references:[id],onDelete: Cascade) 
+   createdAt        DateTime @default(now()) @db.Timestamp(6)
+   yarnInformation  yarnInformation @relation(fields:[yarnInfoID],references:[id],onDelete: Cascade) 
 }
 
 model DeliveryDetails{
   id               Int     @id @default(autoincrement()) 
-  orderId Int
+  orderId           Int
   deliveredQuantity Float
   createdAt      DateTime @default(now()) @db.Timestamp(6)
   deliveredBy String?
+  vechileNumber String?
+  roleQuantity          Int?
   order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
 }
 model ProformaInvoice{
-   id               Int     @id @default(autoincrement()) 
-  style            String?
+   id             Int     @id @default(autoincrement()) 
+  style           String?
   fabricsName     String
   fabricsId       Int?
   description     String?
@@ -180,10 +184,16 @@ model ProformaInvoice{
   piNumber         String
   totalPIAmount    Float
   totalPIQuantity  Float
+  season          String
+  billingWay      String
   createdAt      DateTime @default(now()) @db.Timestamp(6)
 
 fabricsType FabricsType? @relation(fields:[fabricsId],references:[id],onDelete:Cascade)
   buyer Buyer? @relation(fields:[buyerId],references:[id],onDelete:Cascade)
  company Company @relation(fields:[companyId],references:[id],onDelete: Cascade)
 
+}
+model DeliveryMen{
+ id             Int     @id @default(autoincrement()) 
+ name           String     
 }

@@ -5,7 +5,9 @@ const prisma = new PrismaClient()
 
 
 
-function transfer(from, amount, deliveredBy) {
+function transfer(from, amount, deliveredBy,...rest) {
+    console.log(rest[1],'from t4ransfer')
+    try{
     let status=""
     return prisma.$transaction(async (tx) => {
 
@@ -51,11 +53,15 @@ function transfer(from, amount, deliveredBy) {
                 orderId: from,
                 deliveredBy: deliveredBy, // Consider making this dynamic if needed
                 deliveredQuantity: amount,
+                ...rest[1]
             },
         });
 
         return updatedOrder;
     })
+}catch(error){
+    console.log(error)
+}
 }
 
 function transferFromDelivery(from) {
@@ -168,13 +174,14 @@ const getAllDelivery = async (req, res) => {
             include: {
                 order: {
                     select:{
-                        boNumber:true,
-                        invoiceNumber:true,   
+                        unit:true,
+                        bookingNumber:true,
+                        sbNumber:true,   
                         fabricsName:true,
                         orderNumber:true,
                         buyerName:true,
-                        pmNumber:true,
-                        poNumber:true,
+                        programNumber:true,
+                        jobNumber:true,
                         season:true,
                         company:{
                             select:{
@@ -187,6 +194,9 @@ const getAllDelivery = async (req, res) => {
                     
                 }
                
+            },
+            orderBy: {
+                createdAt: 'desc'  // Change 'desc' to 'asc' for ascending order
             }
         })
         res.status(200).send(findDeliveries)
@@ -196,6 +206,7 @@ const getAllDelivery = async (req, res) => {
     }
 }
 const getSingleDelivery = async (req, res) => {
+    console.log(req.params.id)
     try {
         const findSingleDelivery = await prisma.deliveryDetails.findFirst({
             where: {
@@ -204,13 +215,14 @@ const getSingleDelivery = async (req, res) => {
             include: {
                 order: {
                     select:{
-                        boNumber:true,
-                        invoiceNumber:true,   
+                        jobNumber:true,
+                        sbNumber:true,   
                         fabricsName:true,
                         orderNumber:true,
                         buyerName:true,
-                        pmNumber:true,
-                        poNumber:true,
+                        programNumber:true,
+                        bookingNumber:true,
+                        unit:true,
                         season:true,
                         company:{
                             select:{
@@ -225,8 +237,10 @@ const getSingleDelivery = async (req, res) => {
                
             }
         })
+        console.log('find',findSingleDelivery)
         res.status(200).send(findSingleDelivery)
     } catch (error) {
+        console.log(error)
         res.status(400).send(error)
 
     }
@@ -237,6 +251,9 @@ const GetAllDeliveryforAnSingleOrder = async (req, res) => {
             where: {
                 orderId: requestedId(req)
             },
+            orderBy: {
+                createdAt: 'desc'  // Change 'desc' to 'asc' for ascending order
+            }
            
         })
         res.status(200).send(findDeliveryforSingleOrder)
@@ -246,13 +263,13 @@ const GetAllDeliveryforAnSingleOrder = async (req, res) => {
     }
 }
 const createDelivery = async (req, res) => {
-    const { from, amount, deliveredBy,status } = req.body
-    console.log(req.body)
+    const { from, amount, deliveredBy,status,...rest } = req.body
     try {
-        const result = await transfer(from, amount, deliveredBy,status)
+        const result = await transfer(from, amount, deliveredBy,status,rest)
         res.status(200).send(result)
         // return res.status(200).send(transfer(from, amount, deliveredBy))
     } catch (error) {
+        console.log(error)
         return res.status(400).json(error)
     }
 }

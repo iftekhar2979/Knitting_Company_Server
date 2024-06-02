@@ -2,6 +2,7 @@ const express = require('express')
 const port = 8000
 const { PrismaClient } = require('@prisma/client');
 const cors=require("cors")
+let cookieParser = require('cookie-parser')
 const companyRouter=require('./Routes/CompanyRoute/companyRoute')
 const orderRouter=require('./Routes/OrderRoute/orderRoute')
 const deliveryRoute=require('./Routes/DeliveryRoute/deliveryRoute')
@@ -11,6 +12,7 @@ const productRoute=require("./Routes/ProductRoute/productRoute")
 const orderDetails=require("./Routes/OrderRoute/OrderDetailsRoute/orderDetailsRoute")
 const yarnDetails=require('./Routes/OrderRoute/YarnRoute/yarnDetailsRoute')
 const invoiceRoute=require("./Routes/InvoiceRoute/invoiceRoute")
+const deliveryManRoute=require("./Routes/EmployeeRoute/deliveryManRoute")
 const app = express();
 app.use(express.json())
 const prisma = new PrismaClient();
@@ -25,11 +27,18 @@ if(process.env.NODE_ENV==="Production"){
   };
 }
 
-app.use(cors({
-  credentials: true, origin:true
-}))
-app.get('/', (req, res) => {
-  res.send('Hello World!')
+app.use(cors(corsOptions))
+app.use(cookieParser())
+app.get('/', async (req, res) => {
+  try {
+    await prisma.$connect(); // Explicitly attempt to connect to the DB
+    res.status(200).send('Database connection is successful.');
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).send({message:'Failed to connect to the database.',error});
+  } finally {
+    await prisma.$disconnect(); // Clean up connection
+  }
 })
 // app.use(cors())
 app.use(companyRouter)
@@ -41,7 +50,20 @@ app.use(productRoute)
 app.use(orderDetails)
 app.use(yarnDetails)
 app.use(invoiceRoute)
+app.use(deliveryManRoute)
 
+// DB Connection Check Route
+app.get('/check-db', async (req, res) => {
+  try {
+    await prisma.$connect(); // Explicitly attempt to connect to the DB
+    res.status(200).send('Database connection is successful.' ,process.env.DATABASE_URL);
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).send({message:'Failed to connect to the database.',error});
+  } finally {
+    await prisma.$disconnect(); // Clean up connection
+  }
+});
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 })

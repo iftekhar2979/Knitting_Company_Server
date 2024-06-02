@@ -4,11 +4,11 @@ const { protect } = require('../../Middlewares/protectMiddleware')
 
 const router = express.Router()
 
-router.get('/product/fabrics',protect,getAllProduct)
-router.get('/product/fabrics/:id',protect,getSingleProduct)
-router.post('/product/fabrics',protect,createProduct)
-router.patch('/product/fabrics/:id',protect,updateProduct)
-router.delete('/product/fabrics/:id',protect,removeProduct)
+router.get('/api/product/fabrics',protect,getAllProduct)
+router.get('/api/product/fabrics/:id',protect,getSingleProduct)
+router.post('/api/product/fabrics',protect,createProduct)
+router.patch('/api/product/fabrics/:id',protect,updateProduct)
+router.delete('/api/product/fabrics/:id',protect,removeProduct)
 
 
 module.exports=router

@@ -22,7 +22,7 @@ const getSingleProduct = async (req, res) => {
         });
         res.status(200).send(fabricsTypes);
     } catch (error) {
-       return HandleError(404,error,res)
+        return res.status(400).send(error);
     }
 }
 const createProduct=async(req,res)=>{

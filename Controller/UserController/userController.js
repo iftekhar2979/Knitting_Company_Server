@@ -58,14 +58,15 @@ if (existingUser) throw new Error(`User Already Exists`);
         },
 
     });
-    console.log(validUser.email)
     if (!validUser) throw new Error(`Invalid User Details`);
     const validPassword = await compareHashPassword(password, validUser.password);
     if (validUser && validPassword) {
       generateToken(res, validUser.email);
+      // console.log('token',generateToken(res, validUser.email))
       const data = {
         email: validUser.email,
         isAdmin: validUser.isAdmin,
+        token:generateToken(res, validUser.email)
       };
       res.status(200).json({
         data,
@@ -88,7 +89,7 @@ if (existingUser) throw new Error(`User Already Exists`);
   
   // Get User Data
   const getUserProfile = asyncHandler(async (req, res) => {
-    console.log(req.user)
+   
    try{ 
     const data = {
       email: req.user.email,

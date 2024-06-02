@@ -3,10 +3,10 @@ const { getAllCompanyWithBuyers,getSingleCompany, createCompany, updateCompany, 
 const { protect } = require('../../Middlewares/protectMiddleware')
 const router = express.Router()
 
-router.get('/company',protect,getAllCompanyWithBuyers)
-router.get('/company/:id',protect,getSingleCompany)
-router.post('/company',protect,createCompany)
-router.patch('/company/:id',protect,updateCompany)
-router.delete('/company/:id',protect,removeCompany)
+router.get('/api/company',protect,getAllCompanyWithBuyers)
+router.get('/api/company/:id',protect,getSingleCompany)
+router.post('/api/company',protect,createCompany)
+router.patch('/api/company/:id',protect,updateCompany)
+router.delete('/api/company/:id',protect,removeCompany)
 
 module.exports=router

@@ -4,10 +4,10 @@ const { protect } = require('../../../Middlewares/protectMiddleware')
 const router = express.Router()
 
 
-router.get('/order/details/:id',protect,getSingleOrderDetails)
-router.post('/order/details',protect,createOrderDetails)
-router.patch('/order/details/:id',protect,updateOrderDetails)
-router.delete('/order/details/:id',protect,removeOrderDetails)
+router.get('/api/order/details/:id',protect,getSingleOrderDetails)
+router.post('/api/order/details',protect,createOrderDetails)
+router.patch('/api/order/details/:id',protect,updateOrderDetails)
+router.delete('/api/order/details/:id',protect,removeOrderDetails)
 
 
 module.exports=router

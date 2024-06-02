@@ -6,13 +6,11 @@ const prisma = new PrismaClient()
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
+  token=req.cookies?.jwt
 
-  token = req.get("cookie").slice(4)
-  console.log(token)
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log(decoded)
       req.user = await prisma.user.findFirst({
         where: {
           email: decoded.email,
@@ -45,7 +43,6 @@ const adminProtect = asyncHandler(async (req, res, next) => {
 
       });
       if (req.user.isAdmin) {
-        console.log(req.user)
         next();
       } else {
         res.status(401);

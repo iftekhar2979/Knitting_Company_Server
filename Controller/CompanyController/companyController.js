@@ -28,20 +28,22 @@ const getSingleCompany = async (req, res) => {
         });
         res.status(200).send(companiesWithBuyers);
     } catch (error) {
-       return HandleError(404,error,res)
+       return res.status(400).send(error);
     }
 }
 const createCompany=async(req,res)=>{
     const body=req.body
-    console.log(body)
+    console.log(body,'body')
     try {
         const newCompany = await prisma.company.create({
            data:body
         });
        return res.status(200).send(newCompany);
     } catch (error) {
-        console.log(error)
-        return  res.send(error.message);
+        if(error.code==="P2002"){
+            return  res.status(400).send(`Company Email Should be Unique`);
+        }
+        return res.status(400).send(error.message)
     }
 }
 const updateCompany = async (req, res) => {
@@ -56,7 +58,7 @@ const updateCompany = async (req, res) => {
         });
         return res.status(200).send({isUpdated:true,updateCompany});
     } catch (error) {
-        console.log(error)
+        console.log(error.message)
         return res.status(400).send({isUpdated:false, error:error.message});
     }
     

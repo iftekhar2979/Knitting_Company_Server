@@ -7,20 +7,20 @@ const { protect } = require('../../Middlewares/protectMiddleware');
 const router = express.Router()
 
 // Registration /api/users/signup
-router.route("/signup").post(protect,registerUser);
+router.route("/api/signup").post(registerUser);
 
 // Login /api/users/signin
-router.route("/signin").post(loginUser);
+router.route("/api/signin").post(loginUser);
 
 // Logout /api/users/logout
-router.route("/logout").post(logoutUser);
+router.route("/api/logout").post(logoutUser);
 
 //Get profile
-router.get("/profile",protect, getUserProfile);
+router.get("/api/profile",protect, getUserProfile);
 
 // Update User Data
-router.route("/profile").put(protect, updateUserProfile);
+router.route("/api/profile").put(protect, updateUserProfile);
 
 // Get All Users
-router.route("/allusers").get(getAllUsers);
+router.route("/api/allusers").get(getAllUsers);
 module.exports=router

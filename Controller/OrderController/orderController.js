@@ -94,14 +94,15 @@ const getSingleOrderQuantityInfo = async (req, res) => {
 }
 const createOrder = async (req, res) => {
     const orderBody = req.body
-
+    if(!orderBody.buyerId){
+        orderBody.buyerId=null
+    }
     try {
         const newOrder = await prisma.order.create({
             data: orderBody
         });
         return res.status(200).send(newOrder);
     } catch (error) {
-        console.log(error)
         return res.status(400).send(error.message);
     }
 
