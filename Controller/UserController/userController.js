@@ -1,16 +1,16 @@
 
 const {PrismaClient}=require('@prisma/client')
 const prisma = new PrismaClient()
-
+const { io } = require('../../index.js');
 const {generateToken }=require('../../utils/generateToken.js')
 const {compareHashPassword, generateHashedPassword, }=require('../../utils/generateHashedPassword.js')
 const asyncHandler=require('express-async-handler')
+const { compileETag } = require('express/lib/utils.js')
 
 
 // Registration
 const registerUser = asyncHandler(async (req, res) => {
     const {email, password } = req.body;
-    console.log(req.body)
     // Check Inputs
     if ( !email || !password) throw new Error(`Provide All User Details`);
   
@@ -21,11 +21,12 @@ const registerUser = asyncHandler(async (req, res) => {
         },
 
     });
+
 if (existingUser) throw new Error(`User Already Exists`);
   
     // Register New User
     const hashedPassword = await generateHashedPassword(password);
-    console.log(hashedPassword)
+
     const newUser = await prisma.user.create({
         data:{email,password:hashedPassword}
      });
@@ -38,7 +39,7 @@ if (existingUser) throw new Error(`User Already Exists`);
         isAdmin: newUser.isAdmin,
         message: `Registration Successfull`,
       });
-    } else {
+    } else {  
       res.status(400);
       throw new Error(`Invalid User Data`);
     }
@@ -48,6 +49,7 @@ if (existingUser) throw new Error(`User Already Exists`);
    const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     // Check Inputs
+    console.log(email,password)
     
     if (!email || !password) throw new Error(`Provide Valid User Details`);
   
@@ -92,9 +94,12 @@ if (existingUser) throw new Error(`User Already Exists`);
    
    try{ 
     const data = {
+      id:req.user.id,
+      userName:req.user.name,
       email: req.user.email,
         isAdmin: req.user.isAdmin,
     };
+    // io.emit("connect",data)
     res.status(200).json({ data });
   }catch(error){
     res.status(401).send({message:"UnAuthorized User"})

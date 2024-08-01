@@ -3,7 +3,7 @@ const { requestedId } = require('../../../utils/requestFunctions');
 const prisma = new PrismaClient()
 
 
-function transfer(from, amount) {
+function transfer(from, amount,args) {
     return prisma.$transaction(async (tx) => {
         // 1. Fetch the current order to check its quantity before updating
         const currentYarnInfo = await tx.yarnInformation.findUnique({
@@ -14,8 +14,8 @@ function transfer(from, amount) {
         if (!currentYarnInfo) {
             throw new Error(`yarn information with id ${from} does not exist`);
         }
-        if (currentYarnInfo.bookingQuantity < amount) {
-            throw new Error(`Yarn Booking Quantity ${from} does not have enough quantity to transfer. Required: ${amount}, available: ${currentYarnInfo.bookingQuantity}`);
+        if (currentYarnInfo.ReceivingQuantity < amount) {
+            throw new Error(`Yarn Booking Quantity ${from} does not have enough quantity to transfer. Required: ${amount}, available: ${currentYarnInfo.ReceivingQuantity}`);
         }
         // 2. Decrement amount from the sender (order).
         const updatedCurrentYarnInfo = await tx.yarnInformation.update({
@@ -33,7 +33,8 @@ function transfer(from, amount) {
             data: {
                 // Consider making this dynamic if needed
                 yarnInfoID: from,
-                receivedQuantity: amount,
+                returnQuantity: amount,
+                ...args
             },
         });
         return updatedCurrentYarnInfo;
@@ -60,7 +61,7 @@ function transferFromReceived(from) {
             },
             data: {
                 restQuantity: {
-                    increment: currentReceivedBooking.receivedQuantity,
+                    increment: currentReceivedBooking.returnQuantity,
                 },
                 updatedAt: new Date(),
             },
@@ -76,12 +77,14 @@ function transferFromReceived(from) {
         return updatedCurrentYarnInfo;
     })
 }
-const yarnRecevied = async (req, res) => {
-    const { from, amount } = req.body
+const yarnRetruned = async (req, res) => {
+    const { from, amount ,...args} = req.body
+    
     try {
-        const result = await transfer(from, amount)
+        const result = await transfer(from, amount,args)
         res.status(200).send(result)
     } catch (error) {
+        console.log(error)
         return res.status(400).json(error)
     }
 }
@@ -92,9 +95,10 @@ const receivedYarnDeleted = async (req, res) => {
         const result = await transferFromReceived(from)
         res.status(200).send({ result, isDeleted: true })
     } catch (error) {
+        console.log(error)
         return res.status(400).json({
             message: error.message, isDeleted: false
         })
     }
 }
-module.exports = { yarnRecevied,receivedYarnDeleted}
+module.exports = { yarnRetruned,receivedYarnDeleted}

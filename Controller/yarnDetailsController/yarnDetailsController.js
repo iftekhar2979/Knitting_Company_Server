@@ -12,7 +12,8 @@ const getSingleYarnDetails = async (req, res) => {
             include: {
                 company: {
                     select: {
-                        companyName: true
+                        companyName: true,
+                        location:true
                     }
                 },
                 yarnInformationWithDetails: true

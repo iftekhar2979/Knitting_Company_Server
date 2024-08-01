@@ -45,6 +45,9 @@ function transfer(from, amount, deliveredBy,...rest) {
                 restQuantity: {
                     decrement: amount,
                 },
+                deliveredQuantity:{
+                    increment:amount
+                },
                 status:status
             },
         });
@@ -88,9 +91,13 @@ function transferFromDelivery(from) {
                 restQuantity: {
                     increment: currentDelivery.deliveredQuantity,
                 },
+                deliveredQuantity:{
+                    decrement:currentDelivery.deliveredQuantity
+                },
                 status:status
             },
         });
+        console.log('update Order',updatedOrder)
         // 2. delete the delivery
         const deliveryDetail = await tx.deliveryDetails.delete({
             where: {

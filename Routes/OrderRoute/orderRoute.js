@@ -2,7 +2,6 @@ const express = require('express')
 const { getAllOrder, findOrderWithPo, getSingleOrder, createOrder, updateOrder, removeOrder, getSingleOrderQuantityInfo, getAllOrderForInvoice, getSingleOrderForEdit} = require('../../Controller/OrderController/orderController')
 const { protect } = require('../../Middlewares/protectMiddleware')
 const router = express.Router()
-
 router.get('/api/order',protect,getAllOrder)
 router.get('/api/v1/order',protect,getAllOrderForInvoice)
 router.get('/api/order/:id',protect,getSingleOrder)
