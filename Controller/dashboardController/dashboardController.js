@@ -1,6 +1,4 @@
 const { PrismaClient, Prisma } = require('@prisma/client');
-const res = require('express/lib/response');
-const { compileETag } = require('express/lib/utils');
 const prisma = new PrismaClient()
 
 async function getPopularCharts(req, res) {
@@ -15,7 +13,7 @@ async function getPopularCharts(req, res) {
           COUNT(id) AS totalOrder,
           'company' AS category
       FROM
-            \`order\`
+            \`Order\`
       GROUP BY
           companyName
       ORDER BY
@@ -33,7 +31,7 @@ async function getPopularCharts(req, res) {
           COUNT(id) AS totalOrder,
           'fabric' AS category
       FROM
-            \`order\`
+            \`Order\`
       GROUP BY
           fabricsName
       ORDER BY
@@ -51,7 +49,7 @@ async function getPopularCharts(req, res) {
           COUNT(id) AS totalOrder,
           'buyer' AS category
       FROM
-           \`order\`
+           \`Order\`
       GROUP BY
           buyerName
       ORDER BY
@@ -110,9 +108,9 @@ async function getUnitWiseGraph(req, res) {
     SUM(CASE WHEN o.unit = 'Fabric' THEN 1 ELSE 0 END) AS fabric,
     SUM(CASE WHEN o.unit = 'knitting' THEN 1 ELSE 0 END) AS knitting
 FROM
-    \`order\` o
+    \`Order\` o
 JOIN
-    month m ON MONTH(o.targetDate) = m.id
+    Month m ON MONTH(o.targetDate) = m.id
 WHERE
     o.targetDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
 GROUP BY
@@ -135,7 +133,7 @@ async function getFabricChart(req, res) {
     fabricsName AS name,
     COUNT(id) AS totalOrder
 FROM
-    \`order\`
+    \`Order\`
 GROUP BY
     fabricsName
 ORDER BY
@@ -152,7 +150,7 @@ FROM (
         fabricsName,
         COUNT(id) AS totalOrder
     FROM
-        \`order\`
+        \`Order\`
     GROUP BY
         fabricsName
     ORDER BY
@@ -218,4 +216,78 @@ FROM (
 
     }
 }
-module.exports = { getPopularCharts, getUnitWiseGraph, getFabricChart }
+
+async function getAllCompanyOrdersAndFabrics(req, res) {
+    const range = req.query.range
+    const now = new Date();
+    let startDate, endDate;
+    switch (range) {
+
+        case 'last24Hours':
+            startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            endDate = now;
+            break;
+        case 'thisWeek':
+            startDate = new Date(now);
+            // Set start date to Monday of the current week
+            startDate.setDate(now.getDate() - now.getDay() + 1);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = now;
+            break;
+        case 'thisMonth':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = now;
+            break;
+        case 'thisYear':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            endDate = now;
+            break;
+        default:
+            startDate = new Date(0); // Unix epoch
+            endDate = now;
+    }
+
+    try {
+        const companyCount = await prisma.company.count({
+            where: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+        });
+
+        const orderCount = await prisma.order.count({
+            where: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+        });
+
+        const fabricCount = await prisma.fabricsType.count({
+            where: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+
+        });
+
+        let analytics = {
+            companyCount,
+            fabricCount,
+            orderCount,
+        };
+        return res.send(analytics)
+
+    } catch (error) {
+        console.log(error)
+        return res.send(error.message)
+    }
+
+
+}
+module.exports = { getPopularCharts, getUnitWiseGraph, getFabricChart, getAllCompanyOrdersAndFabrics }

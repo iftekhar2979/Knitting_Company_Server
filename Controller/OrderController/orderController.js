@@ -12,8 +12,6 @@ const getAllOrder = async (req, res) => {
                 },
             ],
         });
-        const io = getIo();
-        io.emit('allorder', orders);
         res.send(orders);
     } catch (error) {
         res.send(error);
@@ -39,7 +37,7 @@ const getAllOrderForInvoice = async (req, res) => {
             }
         });
         const io = getIo();
-        io.emit('allorder', orders);
+     
         res.send(orders);
     } catch (error) {
         res.send(error);
@@ -112,8 +110,7 @@ const createOrder = async (req, res) => {
         });
       
         const io = getIo();
-        io.emit('allorder', await prisma.order.findMany({ orderBy: { createdAt: 'desc' }})); // Emit updated orders
-        io.emit('notification', `A new Order has been added ${newOrder.orderNumber}`);
+     
         return res.status(200).send(newOrder);
     } catch (error) {
         return res.status(400).send(error.message);
@@ -147,10 +144,8 @@ const removeOrder = async (req, res) => {
             },
 
         });
-      
-        const io = getIo();
-        io.emit('allorder', await prisma.order.findMany({ orderBy: { createdAt: 'desc' }})); // Emit updated orders
-        io.emit('notification', `A Order has been Deleted ${updatedOrder.orderNumber}`);
+    
+  
         return res.status(200).send({ isDeleted: true, updatedOrder });
     } catch (error) {
         console.log(error)
@@ -191,7 +186,7 @@ const findOrderWithPo = async (req, res) => {
               GROUP_CONCAT(id) as orderId, 
               SUM(deliveredQuantity) as deliveredQuantity
             FROM 
-              \`order\`
+              \`Order\`
             WHERE 
               orderNumber IN (${Prisma.join(orderNumbers)})
             GROUP BY 
@@ -227,4 +222,6 @@ const findOrderWithPo = async (req, res) => {
 //         res.send(error);
 //     }
 // }
+
+
 module.exports = { getAllOrder, findOrderWithPo, getSingleOrderForEdit, getAllOrderForInvoice, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }

@@ -4,6 +4,7 @@ const { PrismaClient, Prisma } = require('@prisma/client');
 const http = require('http');
 const cors = require("cors")
 let cookieParser = require('cookie-parser')
+var morgan = require('morgan')
 
 const companyRouter = require('./Routes/CompanyRoute/companyRoute')
 const orderRouter = require('./Routes/OrderRoute/orderRoute')
@@ -34,9 +35,9 @@ if (process.env.NODE_ENV === "Production") {
 
 app.use(cors(corsOptions))
 app.use(cookieParser())
+app.use(morgan('tiny'))
 
-
-app.get('/', async (req, res) => {
+app.get('/api', async (req, res) => {
   try {
     await prisma.$connect();
      // Explicitly attempt to connect to the DB

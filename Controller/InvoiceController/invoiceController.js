@@ -49,10 +49,9 @@ function transferToBill(orderArrays, body) {
     const d = new Date();
     let year = d.getFullYear();
     let newObject = body.map(item => {
-        const { fabricsId, companyId, buyerName, containOrders, unitPrice, amount, invoiceAmount,orderId, invoiceQuantity } = item
-        return { fabricsId, companyId, buyerName, containOrders, unitPrice, amount, invoiceAmount,orderId, invoiceQuantity }
+        const { fabricsId, companyId, buyerName, containOrders, unitPrice, amount, invoiceAmount, invoiceQuantity } = item
+        return { fabricsId, companyId, buyerName, containOrders, unitPrice, amount, invoiceAmount, invoiceQuantity }
     })
-
     return prisma.$transaction(async (tx) => {
         const firstOrder = await tx.order.findMany({
             where: {
@@ -126,8 +125,8 @@ function changeOrderAndDeleteBills(containOrders, orderArrays) {
             data: {
                 isProformaInvoiceCreated: false,
                 proformaInvoiceId: "",
-                isBillCreated:false,
-                billNumber:""
+                isBillCreated: false,
+                billNumber: ""
             },
         });
 
@@ -171,11 +170,6 @@ const getAllBill = async (req, res) => {
                 invoiceQuantity: true,
                 invoiceAmount: true,
                 containOrders: true,
-                order: {
-                    select: {
-                        orderNumber: true
-                    }
-                },
                 company: {
                     select: {
                         companyName: true
@@ -256,64 +250,81 @@ const getSingleProformaInvoice = async (req, res) => {
 }
 const getSingleBill = async (req, res) => {
     // console.log()
-    let orderNumbers = req.params.id.split("_")
+    let orderNumbers = req.params.id
+
+    if(orderNumbers?.includes("_")){
+        orderNumbers = req.params.id.split("_")
+    }else{
+        orderNumbers=[orderNumbers]
+    }
     try {
+        
         const orders = await prisma.order.findMany({
             where: {
-                orderNumber: {
-                    in: orderNumbers
-                }
+              orderNumber: {
+                in: orderNumbers,
+              },
             },
             select: {
-                companyName: true,
-                buyerName: true,
-                fabricsName: true,
-                deliveredQuantity: true,
-                season: true,
-                company: {
-                    select: {
-                        companyName: true,
-                        location: true
-                    }
+              companyName: true,
+              buyerName: true,
+              fabricsId: true,
+              fabricsName:true,
+              deliveredQuantity: true,
+              season: true,
+              billNumber: true, // From Order model
+              company: {
+                select: {
+                  companyName: true,
+                  location: true,
                 },
-                buyer: {
-                    select: {
-                        buyerName: true
-                    }
+              },
+              buyer: {
+                select: {
+                  buyerName: true,
                 },
-                deliveryDetails: {
+              },
+              deliveryDetails: {
+                select: {
+                  order: {
                     select: {
-                        order: {
-                            select: {
-                                buyerName: true,
-                                sbNumber: true,
-                                programNumber: true,
-                                jobNumber: true,
-                                bookingNumber: true,
-                            }
-                        },
-                        createdAt: true,
-                        id: true,
-                        deliveredQuantity: true
-                    }
+                      buyerName: true,
+                      sbNumber: true,
+                      programNumber: true,
+                      jobNumber: true,
+                      bookingNumber: true,
+                    },
+                  },
+                  createdAt: true,
+                  id: true,
+                  deliveredQuantity: true,
                 },
-                billDetails: {
-                    select: {
-                        billNumber: true,
-                        invoiceAmount: true,
-                        amount: true,
-                        invoiceQuantity: true,
-                        unitPrice: true,
-                        createdAt: true
-                    }
-                }
-
+              },
             },
+          });
+      
+      const bills= await prisma.billInformation.findMany({
+        where: {
+          billNumber:orders.billNumber,
+        },})
 
-        });
-
+        orders.forEach(order => {
+            const matchingBills = bills.filter(bill => bill.fabricsId === order.fabricsId);
+            if (matchingBills.length > 0) {
+              order.billDetails = matchingBills[0];
+            }
+          });
+//     const rawOrders = await prisma.$queryRaw`
+//     SELECT o.companyName, o.buyerName, o.fabricsName, o.deliveredQuantity, o.season, o.bookingNumber as orderBookingNumber,
+//            b.bookingNumber as billBookingNumber, b.billNumber, b.unitPrice, b.amount, b.createdAt as billCreatedAt
+//     FROM Order o
+//     LEFT JOIN BillInformation b ON o.id = b.orderId
+//     WHERE o.orderNumber IN (${orderNumbers.join(', ')})
+//   `;
+//   console.log(rawOrders)
         res.status(200).send(orders);
     } catch (error) {
+        console.log(error)
         res.status(404).send({ error: "Nothing Found !!!" });
     }
 }
@@ -336,9 +347,9 @@ const deleteSingleBill = async (req, res) => {
         const result = await changeOrderAndDeleteBills(params, orderArrays)
         res.status(200).send(result)
     } catch (error) {
-       
+
         res.status(400).send({ error: "Bill did not Deleted Correctly" })
     }
 }
 
-module.exports = { createProformaInvoice,deleteSingleBill, getSingleBill, getAllBill, getAllProformaInvoices, createBill, getSingleProformaInvoice, deleteSingleProformaInvoice }
+module.exports = { createProformaInvoice, deleteSingleBill, getSingleBill, getAllBill, getAllProformaInvoices, createBill, getSingleProformaInvoice, deleteSingleProformaInvoice }

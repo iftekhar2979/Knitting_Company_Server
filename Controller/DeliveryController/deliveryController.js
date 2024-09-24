@@ -21,12 +21,12 @@ function transfer(from, amount, deliveredBy,...rest) {
         if (!currentOrder) {
             throw new Error(`Order with id ${from} does not exist`);
         }
-        if (currentOrder?.restQuantity === amount) {
-           status="Fullfilled"
-        }
-        if (currentOrder?.restQuantity > amount) {
-            status="Pending"
-         }
+        // if (currentOrder?.restQuantity === amount) {
+        //    status="Fullfilled"
+        // }
+        // if (currentOrder?.restQuantity > amount) {
+        //     status="Pending"
+        //  }
  
 
         if (currentOrder.restQuantity < amount) {
@@ -48,7 +48,6 @@ function transfer(from, amount, deliveredBy,...rest) {
                 deliveredQuantity:{
                     increment:amount
                 },
-                status:status
             },
         });
         const deliveryDetail = await tx.deliveryDetails.create({
@@ -64,6 +63,7 @@ function transfer(from, amount, deliveredBy,...rest) {
     })
 }catch(error){
     console.log(error)
+// return res.status(400).send({msg:"Delivery not created "})
 }
 }
 
@@ -94,7 +94,7 @@ function transferFromDelivery(from) {
                 deliveredQuantity:{
                     decrement:currentDelivery.deliveredQuantity
                 },
-                status:status
+                
             },
         });
         console.log('update Order',updatedOrder)
@@ -244,7 +244,7 @@ const getSingleDelivery = async (req, res) => {
                
             }
         })
-        console.log('find',findSingleDelivery)
+        // console.log('find',findSingleDelivery)
         res.status(200).send(findSingleDelivery)
     } catch (error) {
         console.log(error)

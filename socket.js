@@ -10,10 +10,10 @@ function initSocket(server) {
 
   io.on('connection', (socket) => {
 
-      console.log(' user connected');
+      // console.log(' user connected');
   
       socket.on('disconnect', () => {
-        console.log('user disconnected');
+        // console.log('user disconnected');
       });
     });
 

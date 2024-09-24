@@ -52,6 +52,7 @@ model Company {
   location     String   @db.VarChar(255)
   email        String?  @unique @db.VarChar(255)
   contact      String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
   shortForm    String?
   yarnDetails yarnInformation[]
   buyers       Buyer[]  @relation("CompanyBuyers")
@@ -75,6 +76,7 @@ model FabricsType {
   id          Int     @id @default(autoincrement())
   fabricsName String
   description String?
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
   orders Order[]
   proformaInvoices  ProformaInvoice[]
   billInformation  BillInformation[]
@@ -111,7 +113,6 @@ model Order {
   unitPrice Float?
   proformaInvoiceId String?
   details OrderDetails?
-  billDetails BillInformation?
   yarnDetails yarnInformation[]
   deliveryDetails DeliveryDetails[]
   user User? @relation(fields:[userId], references:[id],onDelete:NoAction)
@@ -188,8 +189,7 @@ model DeliveryDetails{
 //Bill model
   model BillInformation{
   id Int @id @default(autoincrement())
-  orderId Int @unique
-  billNumber String
+  billNumber String?
   unitPrice Float
   amount Float
   invoiceAmount   Float
@@ -200,7 +200,6 @@ model DeliveryDetails{
   companyId        Int
   buyerId          Int?
   fabricsId       Int?
-  order  Order? @relation(fields:[orderId],references:[id])
   fabricsType FabricsType? @relation(fields:[fabricsId],references:[id],onDelete:Cascade)
   buyer Buyer? @relation(fields:[buyerId],references:[id],onDelete:Cascade)
   company Company @relation(fields:[companyId],references:[id],onDelete: Cascade)
