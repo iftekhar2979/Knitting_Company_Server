@@ -17,7 +17,7 @@ router.post('/api/v1/order/invoice', protect, findOrderWithPo)
 router.patch('/api/orders/:id/status', async (req, res) => {
     const orderId = parseInt(req.params.id);
     const { status } = req.body;
-    console.log(req.body)
+    // console.log(req.body)
     if (!status) {
         return res.status(400).json({ error: "Status is required" });
     }
