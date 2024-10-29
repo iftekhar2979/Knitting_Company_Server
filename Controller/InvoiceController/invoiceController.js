@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { type } = require('express/lib/response');
+const { compileETag } = require('express/lib/utils');
 const prisma = new PrismaClient()
 
 
@@ -7,7 +8,7 @@ function transfer(orderArrays, body) {
     const d = new Date();
     let year = d.getFullYear();
     return prisma.$transaction(async (tx) => {
-        const firstOrder = await tx.order.findFirst({
+        const firstOrder = await tx.order.findMany({
             where: {
                 orderNumber: {
                     in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
@@ -257,6 +258,7 @@ const getSingleBill = async (req, res) => {
     }else{
         orderNumbers=[orderNumbers]
     }
+    console.log(orderNumbers)
     try {
         
         const orders = await prisma.order.findMany({
@@ -303,9 +305,17 @@ const getSingleBill = async (req, res) => {
             },
           });
       
-      const bills= await prisma.billInformation.findMany({
+          
+        //   console.log("here is the bill number",orders[0].billNumber)
+        let billNumber=orders[0].billNumber
+          if(!billNumber){
+              throw new Error("Bill Number is not found !")
+            }
+      
+      
+            const bills= await prisma.billInformation.findMany({
         where: {
-          billNumber:orders.billNumber,
+          billNumber:billNumber
         },})
 
         orders.forEach(order => {
@@ -342,7 +352,7 @@ const deleteSingleProformaInvoice = async (req, res) => {
 const deleteSingleBill = async (req, res) => {
     const params = req.params.id
     const orderArrays = params.split("_")
-    console.log(params)
+    // console.log(params)
     try {
         const result = await changeOrderAndDeleteBills(params, orderArrays)
         res.status(200).send(result)

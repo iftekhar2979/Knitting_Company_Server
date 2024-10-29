@@ -36,7 +36,7 @@ const getAllOrderForInvoice = async (req, res) => {
                 isBillCreated: true
             }
         });
-        const io = getIo();
+        // const io = getIo();
      
         res.send(orders);
     } catch (error) {
@@ -109,7 +109,7 @@ const createOrder = async (req, res) => {
             data: orderBody
         });
       
-        const io = getIo();
+        // const io = getIo();
      
         return res.status(200).send(newOrder);
     } catch (error) {

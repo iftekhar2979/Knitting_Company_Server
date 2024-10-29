@@ -179,6 +179,8 @@ model DeliveryDetails{
   deliveredQuantity Float
   fabricDeliveredQuantity Float?
   GrayDeliveredQuantity Float?
+  unitPrice Float?
+  billNumber String? 
   createdAt      DateTime @default(now()) @db.Timestamp(6)
   deliveredBy String?
   vechileNumber String?

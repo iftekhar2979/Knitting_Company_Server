@@ -8,6 +8,7 @@ const protect = asyncHandler(async (req, res, next) => {
   let token;
   token=req.cookies?.jwt
 
+  // console.log("token",token)
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -42,7 +43,7 @@ const adminProtect = asyncHandler(async (req, res, next) => {
         },
 
       });
-      console.log(decoded)
+      // console.log(decoded)
       if (req.user.isAdmin) {
         next();
       } else {

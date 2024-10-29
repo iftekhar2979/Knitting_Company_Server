@@ -203,7 +203,7 @@ const getAllDelivery = async (req, res) => {
                
             },
             orderBy: {
-                createdAt: 'desc'  // Change 'desc' to 'asc' for ascending order
+                id: 'desc'  // Change 'desc' to 'asc' for ascending order
             }
         })
         res.status(200).send(findDeliveries)
@@ -305,6 +305,68 @@ const editDelivery = async (req, res) => {
     }
 }
 
+const createBill=async(req,res)=>{
+    try{
+       const id=parseFloat(req.body.chalanId)
+    const unitPrice=req.body.unitPrice
+
+    if(!unitPrice){
+        throw new Error("Must need unit price to create bill!")
+    }
+    console.log(id,unitPrice)
+    
+    const chalan=await prisma.deliveryDetails.update({
+        where:{
+            id:id
+        },
+    data:{
+        unitPrice:unitPrice
+    }
+})
+if(!chalan){
+    throw new Error("Bill Not Created Successfully!")
+}
+return res.status(200).send({status:200,message:'Bill Successfully created!'})
+    }catch(error){
+        res.status(400).send({error:error.message})
+    }
+}
+
+const getBill=async(req,res)=>{
+    try{
+const id=parseFloat(req.params.id)
+if(!id){
+    throw new Error("Bill id not provided!")
+}
+const chalan=await prisma.deliveryDetails.findUnique({
+    where:{
+        id:id
+    },
+    select:{
+        id:true,
+        deliveredQuantity:true,
+        unitPrice:true,
+        createdAt:true,
+        order:{
+            select:{
+                season:true,
+                fabricsName:true,
+                buyer:true,
+                company:true,
+                programNumber:true,
+                jobNumber:true,
+                sbNumber:true,
+                bookingNumber:true,
+            }
+        }
+    }
+})
+res.status(200).send(chalan)
+    }catch(error){
+        console.log(error)
+        res.status(200).send({error:error.message})
+    }
+}
 
 
-module.exports = { createDelivery, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }
+module.exports = { createDelivery,getBill,createBill, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }

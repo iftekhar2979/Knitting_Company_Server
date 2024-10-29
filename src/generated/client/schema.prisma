@@ -160,6 +160,8 @@ model DeliveryDetails{
   orderId Int
   deliveredQuantity Float
   createdAt      DateTime @default(now()) @db.Timestamp(6)
+  unitPrice Float?
+  amount Float?
   deliveredBy String?
   order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
 }

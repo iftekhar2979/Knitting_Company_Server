@@ -1,10 +1,11 @@
 const express = require('express')
 const port = 8000
 const { PrismaClient, Prisma } = require('@prisma/client');
-const http = require('http');
+// const http = require('http');
 const cors = require("cors")
 let cookieParser = require('cookie-parser')
 var morgan = require('morgan')
+const bcrypt=require("bcryptjs")
 
 const companyRouter = require('./Routes/CompanyRoute/companyRoute')
 const orderRouter = require('./Routes/OrderRoute/orderRoute')
@@ -17,9 +18,9 @@ const yarnDetails = require('./Routes/OrderRoute/YarnRoute/yarnDetailsRoute')
 const invoiceRoute = require("./Routes/InvoiceRoute/invoiceRoute")
 const deliveryManRoute = require("./Routes/EmployeeRoute/deliveryManRoute")
 const dashboardRoute = require("./Routes/Dashboard/dashboardRoute");
-const { initSocket } = require('./socket');
+// const { initSocket } = require('./socket');
 const app = express();
-const server = http.createServer(app);
+// const server = http.createServer(app);
 app.use(express.json())
 const prisma = new PrismaClient();
 let corsOptions;
@@ -62,7 +63,7 @@ app.use(invoiceRoute)
 app.use(deliveryManRoute)
 app.use(dashboardRoute)
 
-initSocket(server);
+// initSocket(server);
 // DB Connection Check Route
 app.get('/check-db', async (req, res) => {
   try {
@@ -76,9 +77,26 @@ app.get('/check-db', async (req, res) => {
   }
 });
 
+async function seedAdmin(){
+  const hashedPassword = await bcrypt.hash('adminPassword', 10); // Hash the password
+  // Check if an admin already exists to prevent duplicates
+  const adminExists = await prisma.user.findUnique({
+    where: { email: 'admin@example.com' }
+  });
 
-
-
+  if (!adminExists) {
+    await prisma.user.create({
+      data: {
+        name: 'Admin User',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        isAdmin: true,  // Assign the role of Admin,
+        role:"Admin"
+      },
+    });
+}
+}
+seedAdmin()
 // //test
 
 // async function getAllOrders() {
@@ -124,9 +142,7 @@ app.get('/check-db', async (req, res) => {
 // }
 // getAllOrders()
 
-server.listen(7000, () => {
-  console.log(`Socket is Runing `)
-})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })

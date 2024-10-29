@@ -10,7 +10,7 @@ const getSingleOrderDetails = async (req, res) => {
                 orderId: orderId
             },   
         });
-        console.log(orders)
+        // console.log(orders)
         res.status(200).send(orders);
     } catch (error) {
         res.status(404).send(error);
@@ -19,7 +19,7 @@ const getSingleOrderDetails = async (req, res) => {
 
 const createOrderDetails = async (req, res) => {
     const orderBody = req.body
-    console.log(orderBody)
+    // console.log(orderBody)
     try {
         const neworderDetails = await prisma.orderDetails.create({
             data: orderBody
