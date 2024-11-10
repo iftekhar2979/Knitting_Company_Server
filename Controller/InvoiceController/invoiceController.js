@@ -275,6 +275,7 @@ const getSingleBill = async (req, res) => {
               fabricsName:true,
               deliveredQuantity: true,
               season: true,
+              createdAt:true,
               billNumber: true, // From Order model
               company: {
                 select: {
@@ -305,10 +306,10 @@ const getSingleBill = async (req, res) => {
               },
             },
           });
-      
           
         //   console.log("here is the bill number",orders[0].billNumber)
         let billNumber=orders[0].billNumber
+        console.log(billNumber)
           if(!billNumber){
               throw new Error("Bill Number is not found !")
             }
@@ -365,9 +366,15 @@ const deleteSingleBill = async (req, res) => {
 const changeBillNumber=async(req,res)=>{
     try{
         let orderNumbers = req.params.id
-        console.log(orderNumbers)
+     
 const billNumber=req.query.billNumber
 // console.log(billNumber)
+let individualOrder=[]
+if(orderNumbers?.includes("_")){
+    individualOrder = req.params.id.split("_")
+}else{
+    individualOrder=[orderNumbers]
+}
 const bills=await prisma.billInformation.updateMany({
     where:{
         containOrders:orderNumbers
@@ -376,8 +383,19 @@ const bills=await prisma.billInformation.updateMany({
         billNumber:billNumber
     }
 })
+const orders=await prisma.order.updateMany({
+    where:{
+        orderNumber: {
+            in: individualOrder,
+          },
+    },
+    data:{
+        billNumber:billNumber
+    }
+})
+
 // console.log(bills)
-res.status(200).send(bills)
+res.status(200).send(orders)
     }catch(error){
         // console.log(error)
         res.status(200).send(error)
