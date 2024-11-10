@@ -368,5 +368,37 @@ res.status(200).send(chalan)
     }
 }
 
-
-module.exports = { createDelivery,getBill,createBill, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }
+const getAllDeliveryByChalan=async(req,res)=>{
+    try{
+        const bills=await prisma.deliveryDetails.findMany({
+            where:{
+                unitPrice: {
+                    not: null, // This ensures unitPrice is not null
+                }
+            },
+            select:{
+                id:true,
+                deliveredQuantity:true,
+                unitPrice:true,
+                createdAt:true,
+                order:{
+                    select:{
+                        season:true,
+                        fabricsName:true,
+                        buyer:true,
+                        company:true,
+                        programNumber:true,
+                        jobNumber:true,
+                        sbNumber:true,
+                        bookingNumber:true,
+                    }
+                }
+            }
+        })
+        res.status(200).send(bills)
+    }catch(error){
+        console.log(error)
+        res.status(200).send(error)
+    }
+}
+module.exports = { createDelivery,getBill,createBill,getAllDeliveryByChalan, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }
