@@ -1,8 +1,9 @@
 const express = require('express')
-const { createDelivery, deleteDelivery,getBill,createBill,getAllDeliveryByChalan, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder, editDelivery } = require('../../Controller/DeliveryController/deliveryController')
+const { createDelivery, deleteDelivery,getBill,createBill,getAllDeliveryByChalan, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder, editDelivery, changeBillNumber } = require('../../Controller/DeliveryController/deliveryController')
 const { protect, adminProtect } = require('../../Middlewares/protectMiddleware')
 const router = express.Router()
 
+router.patch('/api/delivery/billNumber/:id',changeBillNumber)
 router.get("/api/delivery/bills",getAllDeliveryByChalan)
 router.patch("/api/delivery/bill",protect,adminProtect,createBill)
 router.get("/api/delivery/bill/:id",getBill)

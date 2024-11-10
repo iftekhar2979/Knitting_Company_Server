@@ -381,6 +381,7 @@ const getAllDeliveryByChalan=async(req,res)=>{
                 deliveredQuantity:true,
                 unitPrice:true,
                 createdAt:true,
+                billNumber:true,
                 order:{
                     select:{
                         season:true,
@@ -401,4 +402,26 @@ const getAllDeliveryByChalan=async(req,res)=>{
         res.status(200).send(error)
     }
 }
-module.exports = { createDelivery,getBill,createBill,getAllDeliveryByChalan, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }
+const changeBillNumber=async(req,res)=>{
+    try{
+const id=parseFloat(req.params.id)
+const billNumber=req.query.billNumber
+console.log(billNumber)
+const bills=await prisma.deliveryDetails.update({
+    where:{
+        id:id,
+        unitPrice: {
+            not: null, // This ensures unitPrice is not null
+        }
+    },
+    data:{
+        billNumber:billNumber
+    }
+})
+res.status(200).send(bills)
+    }catch(error){
+        console.log(error)
+        res.status(200).send(error)
+    }
+}
+module.exports = { createDelivery,getBill,createBill,changeBillNumber,getAllDeliveryByChalan, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }
