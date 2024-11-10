@@ -250,6 +250,7 @@ const getSingleProformaInvoice = async (req, res) => {
     }
 }
 const getSingleBill = async (req, res) => {
+    try {
     // console.log()
     let orderNumbers = req.params.id
 
@@ -258,8 +259,8 @@ const getSingleBill = async (req, res) => {
     }else{
         orderNumbers=[orderNumbers]
     }
-    console.log(orderNumbers)
-    try {
+    // console.log(orderNumbers)
+   
         
         const orders = await prisma.order.findMany({
             where: {
@@ -361,5 +362,28 @@ const deleteSingleBill = async (req, res) => {
         res.status(400).send({ error: "Bill did not Deleted Correctly" })
     }
 }
+const changeBillNumber=async(req,res)=>{
+    try{
+        let orderNumbers = req.params.id
+        console.log(orderNumbers)
+const billNumber=req.query.billNumber
+// console.log(billNumber)
+const bills=await prisma.billInformation.updateMany({
+    where:{
+        containOrders:orderNumbers
+    },
+    data:{
+        billNumber:billNumber
+    }
+})
+// console.log(bills)
+res.status(200).send(bills)
+    }catch(error){
+        // console.log(error)
+        res.status(200).send(error)
+    }
+}
 
-module.exports = { createProformaInvoice, deleteSingleBill, getSingleBill, getAllBill, getAllProformaInvoices, createBill, getSingleProformaInvoice, deleteSingleProformaInvoice }
+
+
+module.exports = { createProformaInvoice, changeBillNumber,deleteSingleBill, getSingleBill, getAllBill, getAllProformaInvoices, createBill, getSingleProformaInvoice, deleteSingleProformaInvoice }

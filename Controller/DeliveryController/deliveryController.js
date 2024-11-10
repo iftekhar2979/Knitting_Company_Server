@@ -406,7 +406,7 @@ const changeBillNumber=async(req,res)=>{
     try{
 const id=parseFloat(req.params.id)
 const billNumber=req.query.billNumber
-console.log(billNumber)
+// console.log(billNumber)
 const bills=await prisma.deliveryDetails.update({
     where:{
         id:id,
