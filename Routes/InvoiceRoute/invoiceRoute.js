@@ -1,10 +1,10 @@
 const express = require('express')
 const { createProformaInvoice,changeBillNumber ,getAllProformaInvoices,getSingleProformaInvoice,deleteSingleProformaInvoice, getSingleBill, createBill, getAllBill, deleteSingleBill} = require('../../Controller/InvoiceController/invoiceController')
-const {  adminProtect } = require('../../Middlewares/protectMiddleware')
+const {  adminProtect, protect } = require('../../Middlewares/protectMiddleware')
 // const {  } = require('../../Controller/DeliveryController/deliveryController')
 const router = express.Router()
 
-router.patch('/api/v1/billNumber/:id',changeBillNumber)
+router.patch('/api/v1/billNumber/:id',protect,adminProtect,changeBillNumber)
 router.post('/api/v1/proformaInvoice',adminProtect,createProformaInvoice)
 router.get('/api/v1/proformaInvoice',adminProtect,getAllProformaInvoices)
 router.get('/api/v1/proformaInvoice/:id',adminProtect,getSingleProformaInvoice)

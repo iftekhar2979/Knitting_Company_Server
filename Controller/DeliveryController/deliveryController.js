@@ -346,6 +346,7 @@ const chalan=await prisma.deliveryDetails.findUnique({
         id:true,
         deliveredQuantity:true,
         unitPrice:true,
+        billNumber:true,
         createdAt:true,
         order:{
             select:{
@@ -424,4 +425,26 @@ res.status(200).send(bills)
         res.status(200).send(error)
     }
 }
-module.exports = { createDelivery,getBill,createBill,changeBillNumber,getAllDeliveryByChalan, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }
+const deleteBill=async(req,res)=>{
+    try{
+        const id=parseFloat(req.params.id)
+        const bills=await prisma.deliveryDetails.update({
+            where:{
+                id:id,
+               
+            },
+            data:{
+                unitPrice:null,
+                billNumber:null,
+            }
+        })
+        res.status(200).send(bills)
+
+            }catch(error){
+                console.log(error)
+                res.status(200).send(error)
+            }
+
+ 
+}
+module.exports = { createDelivery,getBill,deleteBill,createBill,changeBillNumber,getAllDeliveryByChalan, deleteDelivery, editDelivery, getAllDelivery, getSingleDelivery, GetAllDeliveryforAnSingleOrder }

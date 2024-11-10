@@ -309,7 +309,7 @@ const getSingleBill = async (req, res) => {
           
         //   console.log("here is the bill number",orders[0].billNumber)
         let billNumber=orders[0].billNumber
-        console.log(billNumber)
+        // console.log(billNumber)
           if(!billNumber){
               throw new Error("Bill Number is not found !")
             }
