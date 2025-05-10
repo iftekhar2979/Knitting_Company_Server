@@ -176,8 +176,28 @@ function transferEditDelivery(from, amount) {
 }
 
 const getAllDelivery = async (req, res) => {
+    const {page=1,limit=30,orderNumber=''}= req.query
+let where = {}
+if(!orderNumber){
+    where={}
+}else{
+    if(isNaN(parseFloat(orderNumber))){
+        where={
+            id:parseFloat(orderNumber)
+        }
+    }else{
+        where= {
+            orderNumber:{
+                contains:orderNumber || "",       
+            },
+        }
+    }
+  
+}
+
     try {
         const findDeliveries = await prisma.deliveryDetails.findMany({
+            where,
             include: {
                 order: {
                     select:{
@@ -204,9 +224,18 @@ const getAllDelivery = async (req, res) => {
             },
             orderBy: {
                 id: 'desc'  // Change 'desc' to 'asc' for ascending order
-            }
+            },
+            orderBy: [
+                {
+                    createdAt: 'desc',
+                },
+            ],
+            take:parseFloat(limit),
+            skip:(parseFloat(page)-1)*parseFloat(limit)
         })
-        res.status(200).send(findDeliveries)
+
+        const total= await prisma.deliveryDetails.count( {where})
+        res.status(200).send({data:findDeliveries,total})
     } catch (error) {
         res.status(400).send(error)
 

@@ -166,6 +166,7 @@ model YarnInformationWithDetails{
    id               Int @id @default(autoincrement())
    yarnInfoID       Int
    returnQuantity Float
+   westQuantity   Float?
    role String
    vechileNumber String?
    deliveredBy String?
@@ -183,6 +184,7 @@ model DeliveryDetails{
   billNumber String? 
   createdAt      DateTime @default(now()) @db.Timestamp(6)
   deliveredBy String?
+  colour    String?
   vechileNumber String?
   roleQuantity          Int?
   order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)

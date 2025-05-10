@@ -1,7 +1,0 @@
--- AlterTable
-ALTER TABLE `yarndetails` ADD COLUMN `companyId` INTEGER NULL,
-    ADD COLUMN `createdAt` TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    ADD COLUMN `yarn` VARCHAR(191) NULL;
-
--- AddForeignKey
-ALTER TABLE `YarnDetails` ADD CONSTRAINT `YarnDetails_companyId_fkey` FOREIGN KEY (`companyId`) REFERENCES `Company`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;

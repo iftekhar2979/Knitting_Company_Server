@@ -4,16 +4,32 @@ const {getIo} =require("../../socket.js")
 const prisma = new PrismaClient()
 
 const getAllOrder = async (req, res) => {
+    const {page=1,limit=30,orderNumber=''}=req.query
+   console.log(page,limit)
     try {
         const orders = await prisma.order.findMany({
+            where:{
+                orderNumber:{
+                    contains:orderNumber || "",
+                }
+            },
             orderBy: [
                 {
                     createdAt: 'desc',
                 },
             ],
+            take:parseFloat(limit),
+            skip:(parseFloat(page)-1)*parseFloat(limit)
         });
-        res.send(orders);
+        const total= await prisma.order.count( {where:{
+            orderNumber:{
+                contains:orderNumber || "",
+            }
+        },})
+        console.log(total)
+        res.send({orders,total});
     } catch (error) {
+        console.log(error)
         res.send(error);
     }
 }
