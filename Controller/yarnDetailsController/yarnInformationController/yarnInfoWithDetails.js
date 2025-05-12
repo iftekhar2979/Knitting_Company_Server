@@ -4,6 +4,7 @@ const prisma = new PrismaClient()
 
 
 function transfer(from, amount,args) {
+    console.log(args)
     return prisma.$transaction(async (tx) => {
         // 1. Fetch the current order to check its quantity before updating
         const currentYarnInfo = await tx.yarnInformation.findUnique({
@@ -34,7 +35,8 @@ function transfer(from, amount,args) {
                 // Consider making this dynamic if needed
                 yarnInfoID: from,
                 returnQuantity: amount,
-                ...args
+                // westQuantity:parseFloat(west),
+               ...args
             },
         });
         return updatedCurrentYarnInfo;

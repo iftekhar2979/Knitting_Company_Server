@@ -399,6 +399,7 @@ res.status(200).send(chalan)
 }
 
 const getAllDeliveryByChalan=async(req,res)=>{
+    const {page=1,limit=50}=req.query
     try{
         const bills=await prisma.deliveryDetails.findMany({
             where:{
@@ -424,9 +425,12 @@ const getAllDeliveryByChalan=async(req,res)=>{
                         bookingNumber:true,
                     }
                 }
-            }
+            },
+            take:parseInt(limit),
+            skip:(parseFloat(page)-1)*parseFloat(limit)
         })
-        res.status(200).send(bills)
+        const total=await prisma.deliveryDetails.count()
+        res.status(200).send({data:bills,total})
     }catch(error){
         console.log(error)
         res.status(200).send(error)
