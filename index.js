@@ -1,11 +1,12 @@
 const express = require('express')
-const port = 8000
+const config = require('./src/config/config.js');
+const port = config.PORT;
 const { PrismaClient, Prisma } = require('@prisma/client');
 // const http = require('http');
 const cors = require("cors")
 let cookieParser = require('cookie-parser')
 var morgan = require('morgan')
-const bcrypt=require("bcryptjs")
+const bcrypt = require("bcryptjs")
 
 const companyRouter = require('./Routes/CompanyRoute/companyRoute')
 const orderRouter = require('./Routes/OrderRoute/orderRoute')
@@ -24,9 +25,9 @@ const app = express();
 app.use(express.json())
 const prisma = new PrismaClient();
 let corsOptions;
-if (process.env.NODE_ENV === "Production") {
+if (config.NODE_ENV === "Production") {
   corsOptions = {
-    credentials: true, origin: process.env.ORIGIN_URL
+    credentials: true, origin: config.ORIGIN_URL
   };
 } else {
   corsOptions = {
@@ -68,7 +69,7 @@ app.use(dashboardRoute)
 app.get('/check-db', async (req, res) => {
   try {
     await prisma.$connect(); // Explicitly attempt to connect to the DB
-    res.status(200).send('Database connection is successful.', process.env.DATABASE_URL);
+    res.status(200).send('Database connection is successful.', config.DATABASE_URL);
   } catch (error) {
     console.error('Database connection error:', error);
     res.status(500).send({ message: 'Failed to connect to the database.', error });
@@ -78,20 +79,20 @@ app.get('/check-db', async (req, res) => {
 });
 
 async function seedAdmin(){
-  const hashedPassword = await bcrypt.hash('adminPassword', 10); // Hash the password
+  const hashedPassword = await bcrypt.hash(config.ADMIN_PASSWORD, 10); // Hash the password
   // Check if an admin already exists to prevent duplicates
   const adminExists = await prisma.user.findUnique({
-    where: { email: 'admin@example.com' }
+    where: { email: config.ADMIN_EMAIL }
   });
 
   if (!adminExists) {
     await prisma.user.create({
       data: {
-        name: 'Admin User',
-        email: 'admin@tertiary.com',
+        name: config.ADMIN_NAME,
+        email: config.ADMIN_EMAIL,
         password: hashedPassword,
         isAdmin: true,  // Assign the role of Admin,
-        role:"Admin"
+        role:config.ADMIN_ROLE
       },
     });
 }

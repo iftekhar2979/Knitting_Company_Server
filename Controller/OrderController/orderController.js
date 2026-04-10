@@ -5,7 +5,6 @@ const prisma = new PrismaClient()
 
 const getAllOrder = async (req, res) => {
     const {page=1,limit=30,orderNumber=''}=req.query
-   console.log(page,limit)
     try {
         const orders = await prisma.order.findMany({
             where:{

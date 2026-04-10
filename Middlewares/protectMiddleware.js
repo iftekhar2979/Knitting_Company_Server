@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const config = require('../src/config/config.js');
 
 const asyncHandler = require('express-async-handler');
 const { PrismaClient } = require('@prisma/client')
@@ -6,12 +7,12 @@ const prisma = new PrismaClient()
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
-  token=req.cookies?.jwt
+  token = req.cookies?.jwt
 
   // console.log("token",token)
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, config.JWT_SECRET);
       req.user = await prisma.user.findFirst({
         where: {
           email: decoded.email,
@@ -32,11 +33,11 @@ const protect = asyncHandler(async (req, res, next) => {
 const adminProtect = asyncHandler(async (req, res, next) => {
   let token;
 
-  token=req.cookies?.jwt
+  token = req.cookies?.jwt
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, config.JWT_SECRET);
       req.user = await prisma.user.findFirst({
         where: {
           email: decoded.email,

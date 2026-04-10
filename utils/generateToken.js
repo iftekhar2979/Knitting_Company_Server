@@ -1,15 +1,16 @@
-const jwt=require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const config = require('../src/config/config.js');
 
- const generateToken = (res, email) => {
+const generateToken = (res, email) => {
   try {
-    const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ email }, config.JWT_SECRET, {
       expiresIn: "30d",
     });
-   
+
     res.cookie("jwt", token, {
-      httpOnly: process.env.NODE_ENV==="Production",
-      secure: process.env.NODE_ENV==="Production",
-      sameSite: process.env.NODE_ENV==="Production"?"None":"Strict",
+      httpOnly: config.NODE_ENV === "Production",
+      secure: config.NODE_ENV === "Production",
+      sameSite: config.NODE_ENV === "Production" ? "None" : "Strict",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     return token
@@ -18,4 +19,4 @@ const jwt=require('jsonwebtoken')
     throw new Error(`Issue With Assiging JWT`);
   }
 };
-module.exports={generateToken}
+module.exports = { generateToken }

@@ -260,3 +260,13 @@ model UserNotification {
 
   @@unique([userId, notificationId])
 }
+
+model PasswordOTP {
+  id        Int      @id @default(autoincrement())
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([email])
+}
