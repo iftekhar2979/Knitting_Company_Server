@@ -3,7 +3,6 @@ const prisma = new PrismaClient()
 
 const getSingleOrderDetails = async (req, res) => {
     const orderId = parseFloat(req.params.id)
-    console.log(orderId)
     try {
         const orders = await prisma.orderDetails.findUnique({
             where: {

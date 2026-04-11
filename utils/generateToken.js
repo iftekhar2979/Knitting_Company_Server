@@ -4,14 +4,14 @@ const config = require('../src/config/config.js');
 const generateToken = (res, email) => {
   try {
     const token = jwt.sign({ email }, config.JWT_SECRET, {
-      expiresIn: "30d",
+      expiresIn: config.JWT_EXPIRES_AT,
     });
 
-    res.cookie("jwt", token, {
+    res.cookie(config.COKKIE_NAME, token, {
       httpOnly: config.NODE_ENV === "Production",
       secure: config.NODE_ENV === "Production",
       sameSite: config.NODE_ENV === "Production" ? "None" : "Strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: config.JWT_EXPIRES_AT,
     });
     return token
   } catch (error) {

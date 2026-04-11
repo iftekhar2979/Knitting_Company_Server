@@ -63,7 +63,7 @@ function transfer(from, amount, deliveredBy,...rest) {
     })
 }catch(error){
     console.log(error)
-// return res.status(400).send({msg:"Delivery not created "})
+return res.status(400).send({msg:"Delivery not created "})
 }
 }
 
