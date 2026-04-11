@@ -19,6 +19,7 @@ const yarnDetails = require('./Routes/OrderRoute/YarnRoute/yarnDetailsRoute')
 const invoiceRoute = require("./Routes/InvoiceRoute/invoiceRoute")
 const deliveryManRoute = require("./Routes/EmployeeRoute/deliveryManRoute")
 const dashboardRoute = require("./Routes/Dashboard/dashboardRoute");
+const { generateHashedPassword } = require('./utils/generateHashedPassword.js');
 // const { initSocket } = require('./socket');
 const app = express();
 // const server = http.createServer(app);
@@ -79,7 +80,7 @@ app.get('/check-db', async (req, res) => {
 });
 
 async function seedAdmin(){
-  const hashedPassword = await bcrypt.hash(config.ADMIN_PASSWORD, 10); // Hash the password
+  const hashedPassword = await generateHashedPassword(config.ADMIN_PASSWORD); // Hash the password
   // Check if an admin already exists to prevent duplicates
   const adminExists = await prisma.user.findUnique({
     where: { email: config.ADMIN_EMAIL }

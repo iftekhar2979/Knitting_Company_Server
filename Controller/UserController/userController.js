@@ -211,11 +211,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-  await prisma.passwordOTP.upsert({
-    where: { id: (await prisma.passwordOTP.findFirst({ where: { email } }))?.id || -1 },
-    update: { otp, expiresAt },
-    create: { email, otp, expiresAt },
+  await prisma.passwordOTP.deleteMany({ where: { email } });
+  await prisma.passwordOTP.create({
+    data: { email, otp, expiresAt },
   });
 
   await sendEmail({
@@ -235,10 +233,9 @@ const resendOTP = asyncHandler(async (req, res) => {
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  await prisma.passwordOTP.upsert({
-    where: { id: (await prisma.passwordOTP.findFirst({ where: { email } }))?.id || -1 },
-    update: { otp, expiresAt },
-    create: { email, otp, expiresAt },
+  await prisma.passwordOTP.deleteMany({ where: { email } });
+  await prisma.passwordOTP.create({
+    data: { email, otp, expiresAt },
   });
 
   await sendEmail({
@@ -301,4 +298,4 @@ module.exports = {
   resendOTP, 
   verifyOTP, 
   resetPassword 
-}
+}
