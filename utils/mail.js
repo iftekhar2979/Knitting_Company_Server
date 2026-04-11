@@ -1,8 +1,8 @@
 const nodemailer = require('nodemailer');
 const config = require('../src/config/config.js');
 
-const sendEmail = async ({ to, subject, text, html }) => {
-  const transporter = nodemailer.createTransport({
+const createTransporter = () => {
+  return nodemailer.createTransport({
     host: config.SMTP_HOST,
     port: config.SMTP_PORT,
     secure: config.SMTP_PORT === 465, // true for 465, false for other ports
@@ -11,6 +11,10 @@ const sendEmail = async ({ to, subject, text, html }) => {
       pass: config.SMTP_PASS,
     },
   });
+};
+
+const sendEmail = async ({ to, subject, text, html }) => {
+  const transporter = createTransporter();
 
   const mailOptions = {
     from: `"Tertiary Knit" <${config.SMTP_FROM}>`,
@@ -30,4 +34,15 @@ const sendEmail = async ({ to, subject, text, html }) => {
   }
 };
 
-module.exports = { sendEmail };
+const verifyEmailConnection = async () => {
+  const transporter = createTransporter();
+  try {
+    await transporter.verify();
+    return true;
+  } catch (error) {
+    console.error('SMTP Connection Error:', error);
+    return false;
+  }
+};
+
+module.exports = { sendEmail, verifyEmailConnection };

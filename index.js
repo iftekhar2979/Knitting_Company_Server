@@ -20,6 +20,8 @@ const invoiceRoute = require("./Routes/InvoiceRoute/invoiceRoute")
 const deliveryManRoute = require("./Routes/EmployeeRoute/deliveryManRoute")
 const dashboardRoute = require("./Routes/Dashboard/dashboardRoute");
 const { generateHashedPassword } = require('./utils/generateHashedPassword.js');
+const { verifyEmailConnection } = require('./utils/mail.js');
+
 // const { initSocket } = require('./socket');
 const app = express();
 // const server = http.createServer(app);
@@ -98,53 +100,38 @@ async function seedAdmin(){
     });
 }
 }
-seedAdmin()
-// //test
 
-// async function getAllOrders() {
-//   const topOrders = await prisma.order.groupBy({
-//     by: ['companyName'],
-//     _count: {
-//       id: true, // Assuming 'id' is the primary key of your Order model
-//     },
-//     orderBy: {
-//       _count: {
-//         id: 'desc',
-//       },
-//     },
-//     take: 3, // Get top 3 records
-//   });
-//   const topBuyers = await prisma.order.groupBy({
-//     by: ['buyerName'],
-//     _count: {
-//       id: true, // Assuming 'id' is the primary key of your Order model
-//     },
-//     orderBy: {
-//       _count: {
-//         id: 'desc',
-//       },
-//     },
-//     take: 3, // Get top 3 records
-//   });
-//   const topFabrics = await prisma.order.groupBy({
-//     by: ['fabricsName'],
-//     _count: {
-//       id: true, // Assuming 'id' is the primary key of your Order model
-//     },
-//     orderBy: {
-//       _count: {
-//         id: 'desc',
-//       },
-//     },
-//     take: 3, // Get top 3 records
-//   });
+const startServer = async () => {
+    console.log('--- Initializing Server ---');
 
-//   let popular = { topOrders, topBuyers, topFabrics }
-//   console.log(popular)
-// }
-// getAllOrders()
+    // 1. Check Database Connection
+    try {
+        console.log('Checking Database connection...');
+        await prisma.$connect();
+        console.log('✅ Database connected successfully.');
+    } catch (error) {
+        console.error('❌ Database connection failed!');
+        console.error(error);
+        process.exit(1); // Stop the server if DB is not reachable
+    }
 
+    // 2. Check Email Server Connection
+    console.log('Checking Email server connectivity...');
+    const isEmailOk = await verifyEmailConnection();
+    if (isEmailOk) {
+        console.log('✅ Email server is reachable.');
+    } else {
+        console.warn('⚠️ Email server connection failed. Mail features may not work.');
+    }
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+    // 3. Seed Admin (Optional check/update)
+    await seedAdmin();
+
+    // 4. Start Listening
+    app.listen(port, () => {
+        console.log(`🚀 Server is running on port ${port}`);
+        console.log('--- Server Started ---');
+    });
+};
+
+startServer();
