@@ -1,7 +1,8 @@
-const bcrypt=require('bcryptjs')
+const bcrypt=require('bcryptjs');
+const { config } = require('dotenv');
 
  const generateHashedPassword = async (password) => {
-  const salt = await bcrypt.genSaltSync(10);
+  const salt = await bcrypt.genSaltSync(config.SALT_ROUNDS);
   const hashedPassword = await bcrypt.hash(password, salt);
   return hashedPassword;
 };

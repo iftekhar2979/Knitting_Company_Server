@@ -21,6 +21,9 @@ const envSchema = z.object({
   ADMIN_ROLE : z.string().min(1, "ADMIN_ROLE is required"),
   JWT_EXPIRES_AT: z.string().min(1, "JWT_EXPIRES_AT is required"),
   COKKIE_NAME: z.string().min(3, "COKKIE_NAME is required"),
+  SALT_ROUNDS: z.string().transform((val) => parseInt(val, 10)),
+  COKKIE_AGE: z.string().transform((val) => parseInt(val, 10)),
+  
 });
 
 const _env = envSchema.safeParse(process.env);

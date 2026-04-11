@@ -4,32 +4,106 @@ const {getIo} =require("../../socket.js")
 const prisma = new PrismaClient()
 
 const getAllOrder = async (req, res) => {
-    const {page=1,limit=30,orderNumber=''}=req.query
-    try {
-        const orders = await prisma.order.findMany({
-            where:{
-                orderNumber:{
-                    contains:orderNumber || "",
-                }
-            },
-            orderBy: [
-                {
-                    createdAt: 'desc',
-                },
-            ],
-            take:parseFloat(limit),
-            skip:(parseFloat(page)-1)*parseFloat(limit)
+    const { 
+        page = 1, 
+        limit = 30, 
+        orderNumber = '', 
+        companyName = '', 
+        buyerName = '', 
+        fabricsName = '', 
+        season = '',
+        status = ''
+    } = req.query;
+
+    const parsedPage = Math.max(1, parseInt(page) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit) || 30);
+console.log(req.query)
+    const andConditions = [];
+
+    if (orderNumber) {
+        andConditions.push({ orderNumber: { contains: orderNumber } });
+    }
+
+    if (companyName) {
+        andConditions.push({
+            OR: [
+                { companyName: { contains: companyName } },
+                { company: { companyName: { contains: companyName } } }
+            ]
         });
-        const total= await prisma.order.count( {where:{
-            orderNumber:{
-                contains:orderNumber || "",
-            }
-        },})
-        console.log(total)
-        res.send({orders,total});
+    }
+
+    if (buyerName) {
+        andConditions.push({
+            OR: [
+                { buyerName: { contains: buyerName } },
+                { buyer: { buyerName: { contains: buyerName } } }
+            ]
+        });
+    }
+
+    if (fabricsName) {
+        console.log(fabricsName)
+        andConditions.push({
+            OR: [
+                { fabricsName: { contains: fabricsName } },
+                { fabricsType: { fabricsName: { contains: fabricsName } } }
+            ]
+        });
+    }
+
+    if (season) {
+        andConditions.push({ season: { contains: season } });
+    }
+
+    if (status) {
+        andConditions.push({ status: { contains: status } });
+    }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+console.log(where)
+    try {
+        const [orders, total] = await Promise.all([
+            prisma.order.findMany({
+                where,
+                orderBy: [
+                    {
+                        createdAt: 'desc',
+                    },
+                ],
+                take: parsedLimit,
+                skip: (parsedPage - 1) * parsedLimit,
+                include: {
+                    company: {
+                        select: {
+                            companyName: true,
+                        }
+                    },
+                    buyer: {
+                        select: {
+                            buyerName: true,
+                        }
+                    },
+                    fabricsType: {
+                        select: {
+                            fabricsName: true,
+                        }
+                    }
+                }
+            }),
+            prisma.order.count({ where })
+        ]);
+
+        res.send({ 
+            orders, 
+            total, 
+            page: parsedPage, 
+            limit: parsedLimit,
+            totalPages: Math.ceil(total / parsedLimit)
+        });
     } catch (error) {
-        console.log(error)
-        res.send(error);
+        console.error("Error fetching orders:", error);
+        res.status(500).send({ error: "Internal Server Error" });
     }
 }
 const getAllOrderForInvoice = async (req, res) => {

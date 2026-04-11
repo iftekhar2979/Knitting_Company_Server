@@ -13,7 +13,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
   });
 
   const mailOptions = {
-    from: config.SMTP_FROM,
+    from: `"Tertiary Knit" <${config.SMTP_FROM}>`,
     to,
     subject,
     text,

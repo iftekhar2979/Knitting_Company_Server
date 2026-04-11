@@ -11,10 +11,11 @@ const generateToken = (res, email) => {
       httpOnly: config.NODE_ENV === "Production",
       secure: config.NODE_ENV === "Production",
       sameSite: config.NODE_ENV === "Production" ? "None" : "Strict",
-      maxAge: config.JWT_EXPIRES_AT,
+      maxAge: config.COKKIE_AGE,
     });
     return token
   } catch (error) {
+    console.log(error)  
     res.status(500);
     throw new Error(`Issue With Assiging JWT`);
   }

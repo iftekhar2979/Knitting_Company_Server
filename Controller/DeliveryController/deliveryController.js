@@ -176,69 +176,74 @@ function transferEditDelivery(from, amount) {
 }
 
 const getAllDelivery = async (req, res) => {
-    const {page=1,limit=30,orderNumber=''}= req.query
-let where = {}
-if(!orderNumber){
-    where={}
-}else{
-    if(isNaN(parseFloat(orderNumber))){
-        where={
-            id:parseFloat(orderNumber)
-        }
-    }else{
-        where= {
-            orderNumber:{
-                contains:orderNumber || "",       
-            },
-        }
-    }
-  
-}
+    const { 
+        page = 1, 
+        limit = 30, 
+        orderNumber = '', 
+        companyName = '', 
+        buyerName = '', 
+        chalanNumber = '' 
+    } = req.query;
+
+    const parsedPage = Math.max(1, parseInt(page));
+    const parsedLimit = Math.max(1, parseInt(limit));
+
+    const where = {
+        AND: [
+            chalanNumber ? { id: parseInt(chalanNumber) } : {},
+            orderNumber ? { order: { orderNumber: { contains: orderNumber } } } : {},
+            companyName ? { order: { company: { companyName: { contains: companyName } } } } : {},
+            buyerName ? { order: { buyerName: { contains: buyerName } } } : {},
+        ],
+    };
 
     try {
-        const findDeliveries = await prisma.deliveryDetails.findMany({
-            where,
-            include: {
-                order: {
-                    select:{
-                        unit:true,
-                        bookingNumber:true,
-                        sbNumber:true,   
-                        fabricsName:true,
-                        orderNumber:true,
-                        buyerName:true,
-                        programNumber:true,
-                        jobNumber:true,
-                        season:true,
-                        company:{
-                            select:{
-                                companyName:true,
-                                location:true
-                            }
+        const [deliveries, total] = await Promise.all([
+            prisma.deliveryDetails.findMany({
+                where,
+                include: {
+                    order: {
+                        select: {
+                            unit: true,
+                            bookingNumber: true,
+                            sbNumber: true,
+                            fabricsName: true,
+                            orderNumber: true,
+                            buyerName: true,
+                            programNumber: true,
+                            jobNumber: true,
+                            season: true,
+                            company: {
+                                select: {
+                                    companyName: true,
+                                    location: true
+                                }
+                            },
+                            details: true
                         },
-                        details:true
-                    },
-                    
-                }
-               
-            },
-            orderBy: {
-                id: 'desc'  // Change 'desc' to 'asc' for ascending order
-            },
-            orderBy: [
-                {
-                    createdAt: 'desc',
+                    }
                 },
-            ],
-            take:parseFloat(limit),
-            skip:(parseFloat(page)-1)*parseFloat(limit)
-        })
+                orderBy: [
+                    {
+                        createdAt: 'desc',
+                    },
+                ],
+                take: parsedLimit,
+                skip: (parsedPage - 1) * parsedLimit,
+            }),
+            prisma.deliveryDetails.count({ where })
+        ]);
 
-        const total= await prisma.deliveryDetails.count( {where})
-        res.status(200).send({data:findDeliveries,total})
+        res.status(200).send({ 
+            data: deliveries, 
+            total,
+            page: parsedPage,
+            limit: parsedLimit,
+            totalPages: Math.ceil(total / parsedLimit)
+        });
     } catch (error) {
-        res.status(400).send(error)
-
+        console.error("Error fetching deliveries:", error);
+        res.status(400).send(error);
     }
 }
 const getSingleDelivery = async (req, res) => {
