@@ -104,15 +104,27 @@ async function seedAdmin(){
 const startServer = async () => {
     console.log('--- Initializing Server ---');
 
-    // 1. Check Database Connection
-    try {
-        console.log('Checking Database connection...');
-        await prisma.$connect();
-        console.log('✅ Database connected successfully.');
-    } catch (error) {
-        console.error('❌ Database connection failed!');
-        console.error(error);
-        process.exit(1); // Stop the server if DB is not reachable
+    // 1. Check Database Connection with Retry Logic
+    let dbConnected = false;
+    let retries = 5;
+    while (retries > 0 && !dbConnected) {
+        try {
+            console.log(`Checking Database connection... (Attempts left: ${retries})`);
+            await prisma.$connect();
+            dbConnected = true;
+            console.log('✅ Database connected successfully.');
+        } catch (error) {
+            retries -= 1;
+            console.error(`❌ Database connection failed!`);
+            if (retries > 0) {
+                console.log('Retrying in 5 seconds...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            } else {
+                console.error('All database connection attempts failed.');
+                console.error(error);
+                process.exit(1); // Stop the server if DB is not reachable after all retries
+            }
+        }
     }
 
     // 2. Check Email Server Connection
