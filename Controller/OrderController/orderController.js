@@ -1,23 +1,22 @@
 const { PrismaClient, Prisma } = require('@prisma/client');
-const {getIo} =require("../../socket.js")
 
 const prisma = new PrismaClient()
 
 const getAllOrder = async (req, res) => {
-    const { 
-        page = 1, 
-        limit = 30, 
-        orderNumber = '', 
-        companyName = '', 
-        buyerName = '', 
-        fabricsName = '', 
+    const {
+        page = 1,
+        limit = 30,
+        orderNumber = '',
+        companyName = '',
+        buyerName = '',
+        fabricsName = '',
         season = '',
         status = ''
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
     const parsedLimit = Math.max(1, parseInt(limit) || 30);
-console.log(req.query)
+    console.log(req.query)
     const andConditions = [];
 
     if (orderNumber) {
@@ -61,7 +60,7 @@ console.log(req.query)
     }
 
     const where = andConditions.length > 0 ? { AND: andConditions } : {};
-console.log(where)
+    console.log(where)
     try {
         const [orders, total] = await Promise.all([
             prisma.order.findMany({
@@ -94,10 +93,10 @@ console.log(where)
             prisma.order.count({ where })
         ]);
 
-        res.send({ 
-            orders, 
-            total, 
-            page: parsedPage, 
+        res.send({
+            orders,
+            total,
+            page: parsedPage,
             limit: parsedLimit,
             totalPages: Math.ceil(total / parsedLimit)
         });
@@ -109,7 +108,7 @@ console.log(where)
 const getAllOrderForInvoice = async (req, res) => {
     try {
         const orders = await prisma.order.findMany({
-           
+
             orderBy: [
                 {
                     createdAt: 'desc',
@@ -126,7 +125,7 @@ const getAllOrderForInvoice = async (req, res) => {
             }
         });
         // const io = getIo();
-     
+
         res.send(orders);
     } catch (error) {
         res.send(error);
@@ -179,7 +178,7 @@ const getSingleOrderQuantityInfo = async (req, res) => {
             select: {
                 orderQuantity: true,
                 restQuantity: true,
-                deliveredQuantity:true,
+                deliveredQuantity: true,
                 status: true,
             }
         });
@@ -197,9 +196,9 @@ const createOrder = async (req, res) => {
         const newOrder = await prisma.order.create({
             data: orderBody
         });
-      
+
         // const io = getIo();
-     
+
         return res.status(200).send(newOrder);
     } catch (error) {
         return res.status(400).send(error.message);
@@ -233,8 +232,8 @@ const removeOrder = async (req, res) => {
             },
 
         });
-    
-  
+
+
         return res.status(200).send({ isDeleted: true, updatedOrder });
     } catch (error) {
         console.log(error)

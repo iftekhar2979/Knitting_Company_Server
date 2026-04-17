@@ -22,9 +22,7 @@ const dashboardRoute = require("./Routes/Dashboard/dashboardRoute");
 const { generateHashedPassword } = require('./utils/generateHashedPassword.js');
 const { verifyEmailConnection } = require('./utils/mail.js');
 
-// const { initSocket } = require('./socket');
 const app = express();
-// const server = http.createServer(app);
 app.use(express.json())
 const prisma = new PrismaClient();
 let corsOptions;
@@ -45,7 +43,7 @@ app.use(morgan('tiny'))
 app.get('/api', async (req, res) => {
   try {
     await prisma.$connect();
-     // Explicitly attempt to connect to the DB
+    // Explicitly attempt to connect to the DB
     res.status(200).send('Database connection is successful.');
   } catch (error) {
     console.error('Database connection error:', error);
@@ -81,7 +79,7 @@ app.get('/check-db', async (req, res) => {
   }
 });
 
-async function seedAdmin(){
+async function seedAdmin() {
   const hashedPassword = await generateHashedPassword(config.ADMIN_PASSWORD); // Hash the password
   // Check if an admin already exists to prevent duplicates
   const adminExists = await prisma.user.findUnique({
@@ -95,55 +93,55 @@ async function seedAdmin(){
         email: config.ADMIN_EMAIL,
         password: hashedPassword,
         isAdmin: true,  // Assign the role of Admin,
-        role:config.ADMIN_ROLE
+        role: config.ADMIN_ROLE
       },
     });
-}
+  }
 }
 
 const startServer = async () => {
-    console.log('--- Initializing Server ---');
+  console.log('--- Initializing Server ---');
 
-    // 1. Check Database Connection with Retry Logic
-    let dbConnected = false;
-    let retries = 5;
-    while (retries > 0 && !dbConnected) {
-        try {
-            console.log(`Checking Database connection... (Attempts left: ${retries})`);
-            await prisma.$connect();
-            dbConnected = true;
-            console.log('✅ Database connected successfully.');
-        } catch (error) {
-            retries -= 1;
-            console.error(`❌ Database connection failed!`);
-            if (retries > 0) {
-                console.log('Retrying in 5 seconds...');
-                await new Promise(resolve => setTimeout(resolve, 5000));
-            } else {
-                console.error('All database connection attempts failed.');
-                console.error(error);
-                process.exit(1); // Stop the server if DB is not reachable after all retries
-            }
-        }
+  // 1. Check Database Connection with Retry Logic
+  let dbConnected = false;
+  let retries = 5;
+  while (retries > 0 && !dbConnected) {
+    try {
+      console.log(`Checking Database connection... (Attempts left: ${retries})`);
+      await prisma.$connect();
+      dbConnected = true;
+      console.log('✅ Database connected successfully.');
+    } catch (error) {
+      retries -= 1;
+      console.error(`❌ Database connection failed!`);
+      if (retries > 0) {
+        console.log('Retrying in 5 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } else {
+        console.error('All database connection attempts failed.');
+        console.error(error);
+        process.exit(1); // Stop the server if DB is not reachable after all retries
+      }
     }
+  }
 
-    // 2. Check Email Server Connection
-    console.log('Checking Email server connectivity...');
-    const isEmailOk = await verifyEmailConnection();
-    if (isEmailOk) {
-        console.log('✅ Email server is reachable.');
-    } else {
-        console.warn('⚠️ Email server connection failed. Mail features may not work.');
-    }
+  // 2. Check Email Server Connection
+  console.log('Checking Email server connectivity...');
+  const isEmailOk = await verifyEmailConnection();
+  if (isEmailOk) {
+    console.log('✅ Email server is reachable.');
+  } else {
+    console.warn('⚠️ Email server connection failed. Mail features may not work.');
+  }
 
-    // 3. Seed Admin (Optional check/update)
-    await seedAdmin();
+  // 3. Seed Admin (Optional check/update)
+  await seedAdmin();
 
-    // 4. Start Listening
-    app.listen(port, () => {
-        console.log(`🚀 Server is running on port ${port}`);
-        console.log('--- Server Started ---');
-    });
+  // 4. Start Listening
+  app.listen(port, () => {
+    console.log(`🚀 Server is running on port ${port}`);
+    console.log('--- Server Started ---');
+  });
 };
 
 startServer();
