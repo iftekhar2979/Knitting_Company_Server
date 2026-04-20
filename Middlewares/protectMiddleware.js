@@ -19,6 +19,7 @@ const protect = asyncHandler(async (req, res, next) => {
         },
 
       });
+      console.log(req.user)
       next();
     } catch (err) {
       res.status(401);

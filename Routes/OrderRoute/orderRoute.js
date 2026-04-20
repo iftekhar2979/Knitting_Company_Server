@@ -1,6 +1,7 @@
 const express = require('express')
 const { getAllOrder, findOrderWithPo, getSingleOrder, createOrder, updateOrder, removeOrder, getSingleOrderQuantityInfo, getAllOrderForInvoice, getSingleOrderForEdit } = require('../../Controller/OrderController/orderController')
 const { protect } = require('../../Middlewares/protectMiddleware')
+const { validateOrder } = require('../../Middlewares/validateOrderMiddleware')
 const { PrismaClient, Prisma } = require('@prisma/client');
 
 const prisma = new PrismaClient()
@@ -10,7 +11,7 @@ router.get('/api/v1/order', protect, getAllOrderForInvoice)
 router.get('/api/order/:id', protect, getSingleOrder)
 router.get('/api/edit/order/:id', protect, getSingleOrderForEdit)
 router.get('/api/quantity/order/:id', protect, getSingleOrderQuantityInfo)
-router.post('/api/order', protect, createOrder)
+router.post('/api/order', protect, validateOrder, createOrder)
 router.patch('/api/order/:id', protect, updateOrder)
 router.delete('/api/order/:id', protect, removeOrder)
 router.post('/api/v1/order/invoice', protect, findOrderWithPo)

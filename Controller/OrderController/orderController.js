@@ -16,7 +16,6 @@ const getAllOrder = async (req, res) => {
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
     const parsedLimit = Math.max(1, parseInt(limit) || 30);
-    console.log(req.query)
     const andConditions = [];
 
     if (orderNumber) {
@@ -193,6 +192,18 @@ const createOrder = async (req, res) => {
         orderBody.buyerId = null
     }
     try {
+        if (orderBody.orderNumber) {
+            const existingOrder = await prisma.order.findFirst({
+                where: {
+                    orderNumber: orderBody.orderNumber
+                }
+            });
+
+            if (existingOrder) {
+                return res.status(400).send({ message: "Order number already exists" });
+            }
+        }
+
         const newOrder = await prisma.order.create({
             data: orderBody
         });

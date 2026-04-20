@@ -85,8 +85,9 @@ async function seedAdmin() {
   const adminExists = await prisma.user.findUnique({
     where: { email: config.ADMIN_EMAIL }
   });
-
+  console.log(adminExists)
   if (!adminExists) {
+    console.log("Email Not Exist")
     await prisma.user.create({
       data: {
         name: config.ADMIN_NAME,
