@@ -158,43 +158,83 @@ const createBill = async (req, res) => {
     }
 }
 const getAllBill = async (req, res) => {
-    const { page = 1, limit = 50 } = req.query;
-    try {
-      const orders = await prisma.billInformation.findMany({
-        orderBy: [{ createdAt: 'desc' }],
-        select: {
-          id: true,
-          billNumber: true,
-          invoiceQuantity: true,
-          invoiceAmount: true,
-          containOrders: true,
-          company: {
-            select: { companyName: true }
-          },
-          buyer: {
-            select: { buyerName: true }
-          },
-          fabricsType: {
-            select: { fabricsName: true }
-          }
-        },
-        distinct: ['containOrders'], // ✅ Valid here
-        take: parseFloat(limit),
-        skip: (parseFloat(page) - 1) * parseFloat(limit),
-      });
-  
-      // ❌ count() doesn't support distinct — so do this instead:
-      const allOrders = await prisma.billInformation.findMany({
-        select: { containOrders: true }
-      });
-      const total = new Set(allOrders.map(o => o.containOrders)).size;
-  
-      res.status(200).send({ data: orders,total });
-    } catch (error) {
-      console.error(error);
-      res.status(404).send({ error: "Nothing Found !!!" });
+    const { 
+        page = 1, 
+        limit = 50, 
+        term = '', 
+        companyName = '', 
+        buyerName = '',
+        sort = 'desc' 
+    } = req.query;
+
+    const parsedPage = Math.max(1, parseInt(page) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit) || 50);
+    
+    const andConditions = [];
+
+    if (term) {
+        andConditions.push({ billNumber: { contains: term } });
     }
-  }
+
+    if (companyName) {
+        andConditions.push({
+            company: { companyName: { contains: companyName } }
+        });
+    }
+
+    if (buyerName) {
+        andConditions.push({
+            buyer: { buyerName: { contains: buyerName } }
+        });
+    }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    try {
+        const [bills, allBillsCount] = await Promise.all([
+            prisma.billInformation.findMany({
+                where,
+                orderBy: [{ createdAt: sort }],
+                select: {
+                    id: true,
+                    billNumber: true,
+                    invoiceQuantity: true,
+                    invoiceAmount: true,
+                    containOrders: true,
+                    createdAt: true,
+                    company: {
+                        select: { companyName: true }
+                    },
+                    buyer: {
+                        select: { buyerName: true }
+                    },
+                    fabricsType: {
+                        select: { fabricsName: true }
+                    }
+                },
+                distinct: ['containOrders'],
+                take: parsedLimit,
+                skip: (parsedPage - 1) * parsedLimit,
+            }),
+            prisma.billInformation.findMany({
+                where,
+                select: { containOrders: true }
+            })
+        ]);
+
+        const totalItems = new Set(allBillsCount.map(b => b.containOrders)).size;
+
+        res.status(200).send({ 
+            data: bills, 
+            total: totalItems,
+            page: parsedPage,
+            limit: parsedLimit
+        });
+    } catch (error) {
+        console.error("Error fetching bills:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+    }
+}
 // const getAllBill = async (req, res) => {
 //     const { page = 1, limit = 50 } = req.query;
 //     const parsedLimit = parseInt(limit);
@@ -232,48 +272,80 @@ const getAllBill = async (req, res) => {
 //   };
   
 const getAllProformaInvoices = async (req, res) => {
-    
-    const { page = 1, limit = 50 } = req.query;
-    try {
-        const orders = await prisma.proformaInvoice.findMany({
-            orderBy: [
-                {
-                    createdAt: 'desc',
-                },
-            ],
-            select: {
-                id: true,
-                piNumber: true,
-                fabricsName: true,
-                totalPIQuantity: true,
-                totalPIAmount: true,
-                containOrders: true,
-                billingWay: true,
-                company: {
-                    select: {
-                        companyName: true
-                    }
-                },
-                buyer: {
-                    select: {
-                        buyerName: true
-                    }
-                },
-            },
-            distinct: ["containOrders"],
-            take: parseFloat(limit),
-        skip: (parseFloat(page) - 1) * parseFloat(limit),
-        });
+    const { 
+        page = 1, 
+        limit = 50, 
+        term = '', 
+        companyName = '', 
+        buyerName = '',
+        sort = 'desc' 
+    } = req.query;
 
-        const allOrders = await prisma.proformaInvoice.findMany({
-            select: { containOrders: true }
-          });
-          const total = new Set(allOrders.map(o => o.containOrders)).size;
-      
-        res.status(200).send({data:orders,total});
+    const parsedPage = Math.max(1, parseInt(page) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit) || 50);
+
+    const andConditions = [];
+
+    if (term) {
+        andConditions.push({ piNumber: { contains: term } });
+    }
+
+    if (companyName) {
+        andConditions.push({
+            company: { companyName: { contains: companyName } }
+        });
+    }
+
+    if (buyerName) {
+        andConditions.push({
+            buyer: { buyerName: { contains: buyerName } }
+        });
+    }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    try {
+        const [invoices, allInvoicesCount] = await Promise.all([
+            prisma.proformaInvoice.findMany({
+                where,
+                orderBy: [{ createdAt: sort }],
+                select: {
+                    id: true,
+                    piNumber: true,
+                    fabricsName: true,
+                    totalPIQuantity: true,
+                    totalPIAmount: true,
+                    containOrders: true,
+                    billingWay: true,
+                    createdAt: true,
+                    company: {
+                        select: { companyName: true }
+                    },
+                    buyer: {
+                        select: { buyerName: true }
+                    },
+                },
+                distinct: ["containOrders"],
+                take: parsedLimit,
+                skip: (parsedPage - 1) * parsedLimit,
+            }),
+            prisma.proformaInvoice.findMany({
+                where,
+                select: { containOrders: true }
+            })
+        ]);
+
+        const totalItems = new Set(allInvoicesCount.map(i => i.containOrders)).size;
+
+        res.status(200).send({ 
+            data: invoices, 
+            total: totalItems,
+            page: parsedPage,
+            limit: parsedLimit
+        });
     } catch (error) {
-        console.log(error)
-        res.status(404).send({ error: "Nothing Found !!!" });
+        console.error("Error fetching proforma invoices:", error);
+        res.status(500).send({ error: "Internal Server Error" });
     }
 }
 

@@ -105,29 +105,91 @@ const getAllOrder = async (req, res) => {
     }
 }
 const getAllOrderForInvoice = async (req, res) => {
-    try {
-        const orders = await prisma.order.findMany({
+    const {
+        page = 1,
+        limit = 30,
+        orderNumber = '',
+        companyName = '',
+        buyerName = '',
+        fabricsName = '',
+        sort = 'desc' // default sort for orderQuantity
+    } = req.query;
 
-            orderBy: [
-                {
-                    createdAt: 'desc',
-                },
-            ],
-            select: {
-                id: true,
-                companyName: true,
-                orderNumber: true,
-                fabricsName: true,
-                orderQuantity: true,
-                buyerName: true,
-                isBillCreated: true
-            }
+    const parsedPage = Math.max(1, parseInt(page) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit) || 30);
+    const andConditions = [];
+
+    if (orderNumber) {
+        andConditions.push({ orderNumber: { contains: orderNumber } });
+    }
+
+    if (companyName) {
+        andConditions.push({
+            OR: [
+                { companyName: { contains: companyName } },
+                { company: { companyName: { contains: companyName } } }
+            ]
         });
-        // const io = getIo();
+    }
 
-        res.send(orders);
+    if (buyerName) {
+        andConditions.push({
+            OR: [
+                { buyerName: { contains: buyerName } },
+                { buyer: { buyerName: { contains: buyerName } } }
+            ]
+        });
+    }
+
+    if (fabricsName) {
+        andConditions.push({
+            OR: [
+                { fabricsName: { contains: fabricsName } },
+                { fabricsType: { fabricsName: { contains: fabricsName } } }
+            ]
+        });
+    }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    try {
+        const [orders, total] = await Promise.all([
+            prisma.order.findMany({
+                where,
+                orderBy: [
+                    {
+                        orderQuantity: sort,
+                    },
+                    {
+                        createdAt: 'desc',
+                    }
+                ],
+                take: parsedLimit,
+                skip: (parsedPage - 1) * parsedLimit,
+                select: {
+                    id: true,
+                    companyName: true,
+                    orderNumber: true,
+                    fabricsName: true,
+                    orderQuantity: true,
+                    buyerName: true,
+                    isBillCreated: true,
+                    isProformaInvoiceCreated: true
+                }
+            }),
+            prisma.order.count({ where })
+        ]);
+
+        res.send({
+            orders,
+            total,
+            page: parsedPage,
+            limit: parsedLimit,
+            totalPages: Math.ceil(total / parsedLimit)
+        });
     } catch (error) {
-        res.send(error);
+        console.error("Error fetching invoice orders:", error);
+        res.status(500).send({ error: "Internal Server Error" });
     }
 }
 const getSingleOrder = async (req, res) => {
