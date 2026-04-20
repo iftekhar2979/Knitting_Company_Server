@@ -11,7 +11,8 @@ const getAllOrder = async (req, res) => {
         buyerName = '',
         fabricsName = '',
         season = '',
-        status = ''
+        status = '',
+        sort = 'desc'
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -66,7 +67,7 @@ const getAllOrder = async (req, res) => {
                 where,
                 orderBy: [
                     {
-                        createdAt: 'desc',
+                        createdAt: sort,
                     },
                 ],
                 take: parsedLimit,

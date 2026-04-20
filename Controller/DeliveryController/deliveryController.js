@@ -182,7 +182,8 @@ const getAllDelivery = async (req, res) => {
         orderNumber = '', 
         companyName = '', 
         buyerName = '', 
-        chalanNumber = '' 
+        chalanNumber = '',
+        sort = 'desc'
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page));
@@ -225,7 +226,7 @@ const getAllDelivery = async (req, res) => {
                 },
                 orderBy: [
                     {
-                        createdAt: 'desc',
+                        createdAt: sort,
                     },
                 ],
                 take: parsedLimit,
@@ -403,42 +404,88 @@ res.status(200).send(chalan)
     }
 }
 
-const getAllDeliveryByChalan=async(req,res)=>{
-    const {page=1,limit=50}=req.query
-    try{
-        const bills=await prisma.deliveryDetails.findMany({
-            where:{
-                unitPrice: {
-                    not: null, // This ensures unitPrice is not null
-                }
-            },
-            select:{
-                id:true,
-                deliveredQuantity:true,
-                unitPrice:true,
-                createdAt:true,
-                billNumber:true,
-                order:{
-                    select:{
-                        season:true,
-                        fabricsName:true,
-                        buyer:true,
-                        company:true,
-                        programNumber:true,
-                        jobNumber:true,
-                        sbNumber:true,
-                        bookingNumber:true,
+const getAllDeliveryByChalan = async (req, res) => {
+    const { 
+        page = 1, 
+        limit = 50, 
+        term = '', 
+        companyName = '', 
+        buyerName = '',
+        sort = 'desc' 
+    } = req.query;
+
+    const parsedPage = Math.max(1, parseInt(page) || 1);
+    const parsedLimit = Math.max(1, parseInt(limit) || 50);
+
+    const andConditions = [
+        { unitPrice: { not: null } }
+    ];
+
+    if (term) {
+        // Search by Chalan Number (id) or Bill Number
+        const isNumeric = !isNaN(term);
+        const termConditions = [
+            { billNumber: { contains: term } }
+        ];
+        if (isNumeric) {
+            termConditions.push({ id: parseInt(term) });
+        }
+        andConditions.push({ OR: termConditions });
+    }
+
+    if (companyName) {
+        andConditions.push({
+            order: { company: { companyName: { contains: companyName } } }
+        });
+    }
+
+    if (buyerName) {
+        andConditions.push({
+            order: { buyer: { buyerName: { contains: buyerName } } }
+        });
+    }
+
+    const where = { AND: andConditions };
+
+    try {
+        const [bills, total] = await Promise.all([
+            prisma.deliveryDetails.findMany({
+                where,
+                select: {
+                    id: true,
+                    deliveredQuantity: true,
+                    unitPrice: true,
+                    createdAt: true,
+                    billNumber: true,
+                    order: {
+                        select: {
+                            season: true,
+                            fabricsName: true,
+                            buyer: true,
+                            company: true,
+                            programNumber: true,
+                            jobNumber: true,
+                            sbNumber: true,
+                            bookingNumber: true,
+                        }
                     }
-                }
-            },
-            take:parseInt(limit),
-            skip:(parseFloat(page)-1)*parseFloat(limit)
-        })
-        const total=await prisma.deliveryDetails.count()
-        res.status(200).send({data:bills,total})
-    }catch(error){
-        console.log(error)
-        res.status(200).send(error)
+                },
+                orderBy: [{ createdAt: sort }],
+                take: parsedLimit,
+                skip: (parsedPage - 1) * parsedLimit,
+            }),
+            prisma.deliveryDetails.count({ where })
+        ]);
+
+        res.status(200).send({ 
+            data: bills, 
+            total,
+            page: parsedPage,
+            limit: parsedLimit
+        });
+    } catch (error) {
+        console.error("Error fetching chalan bills:", error);
+        res.status(500).send({ error: "Internal Server Error" });
     }
 }
 const changeBillNumber=async(req,res)=>{
