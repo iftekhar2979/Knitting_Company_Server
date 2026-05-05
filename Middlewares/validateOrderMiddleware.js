@@ -26,10 +26,10 @@ const validateOrder = (req, res, next) => {
         next();
     } catch (error) {
         console.log(error)
-        if (error instanceof z.ZodError) {
-            const message = error.errors[0]?.message || "Validation failed";
-            return res.status(400).send({ message });
-        }
+        // if (error instanceof z.ZodError) {
+        //     const message = error.errors[0]?.message || "Validation failed";
+        //     return res.status(400).send({ message });
+        // }
         return res.status(400).send({ message: "Invalid request data" });
     }
 };
