@@ -18,7 +18,6 @@ const orderValidationSchema = z.object({
     sbNumber: z.string({ required_error: "SB number is required" }).min(1, "SB number cannot be empty"),
     targetDate: z.string({ required_error: "Target date is required" }).min(1, "Target date cannot be empty"),
     status: z.string({ required_error: "Status is required" }).min(1, "Status cannot be empty"),
-    userId: z.number({ required_error: "User ID is required" }).int().positive("User ID must be a positive integer")
 });
 
 const validateOrder = (req, res, next) => {
@@ -26,6 +25,7 @@ const validateOrder = (req, res, next) => {
         orderValidationSchema.parse(req.body);
         next();
     } catch (error) {
+        console.log(error)
         if (error instanceof z.ZodError) {
             const message = error.errors[0]?.message || "Validation failed";
             return res.status(400).send({ message });

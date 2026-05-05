@@ -13,13 +13,14 @@ const protect = asyncHandler(async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET);
-      req.user = await prisma.user.findFirst({
+      console.log(decoded)
+      const user = await prisma.user.findFirst({
         where: {
           email: decoded.email,
         },
 
       });
-      console.log(req.user)
+      req.user = user
       next();
     } catch (err) {
       res.status(401);

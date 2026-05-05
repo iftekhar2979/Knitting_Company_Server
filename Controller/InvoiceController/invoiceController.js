@@ -1,102 +1,149 @@
 const { PrismaClient } = require('@prisma/client');
-const { type } = require('express/lib/response');
-const { compileETag } = require('express/lib/utils');
-const prisma = new PrismaClient()
-
+const prisma = new PrismaClient();
 
 function transfer(orderArrays, body) {
     const d = new Date();
     let year = d.getFullYear();
+    console.log("Order Arrays:", orderArrays);
+
     return prisma.$transaction(async (tx) => {
         const firstOrder = await tx.order.findMany({
             where: {
                 orderNumber: {
-                    in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
+                    in: orderArrays,
                 },
             },
             include: {
                 company: true
             }
-
-        })
-
-        body.forEach(element => {
-            element.piNumber = `TKCF-${firstOrder.company.shortForm}-${firstOrder.id}/${year}`
-            element.season = firstOrder.season
         });
 
-        const order = await tx.order.updateMany({
+        if (!firstOrder || firstOrder.length === 0) {
+            throw new Error("No orders found for the given numbers");
+        }
+
+        console.log("First Order Company:", firstOrder[0].company);
+
+        const piNumber = `TKCF-${firstOrder[0].company.shortForm}-${firstOrder[0].id}/${year}`;
+        const season = firstOrder[0].season;
+        const defaultBuyerId = firstOrder[0].buyerId;
+
+        const sanitizedBody = body.map(element => {
+            // Explicitly pick only the fields that exist in the ProformaInvoice model
+            return {
+                style: element.style,
+                fabricsName: element.fabricsName,
+                fabricsId: element.fabricsId,
+                description: element.description,
+                finishDia: element.finishDia,
+                unitPrice: element.unitPrice,
+                totalQuantity: element.totalQuantity,
+                amount: element.amount,
+                companyId: element.companyId,
+                buyerId: element.buyerId || defaultBuyerId,
+                containOrders: element.containOrders,
+                piName: element.piName,
+                piNumber: piNumber,
+                invoiceAmount: element.invoiceAmount,
+                invoiceQuantity: element.invoiceQuantity,
+                season: season,
+                billingWay: element.billingWay,
+                createdAt: element.createdAt ? new Date(element.createdAt) : new Date()
+            };
+        });
+
+        await tx.order.updateMany({
             where: {
                 orderNumber: {
-                    in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
+                    in: orderArrays,
                 },
             },
             data: {
                 isProformaInvoiceCreated: true,
-                proformaInvoiceId: body.containOrders,
-
+                proformaInvoiceId: body[0].containOrders,
             },
-
         });
 
+        console.log("Sanitized Body for ProformaInvoice:", sanitizedBody);
         const createManyProformaInvoice = await tx.proformaInvoice.createMany({
-            data: body
-        })
+            data: sanitizedBody
+        });
+
         return createManyProformaInvoice;
-    })
+    });
 }
 
 function transferToBill(orderArrays, body) {
     const d = new Date();
     let year = d.getFullYear();
-    let newObject = body.map(item => {
-        const { fabricsId, companyId, buyerName, containOrders, unitPrice, amount, invoiceAmount, invoiceQuantity } = item
-        return { fabricsId, companyId, buyerName, containOrders, unitPrice, amount, invoiceAmount, invoiceQuantity }
-    })
+
     return prisma.$transaction(async (tx) => {
         const firstOrder = await tx.order.findMany({
             where: {
                 orderNumber: {
-                    in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
+                    in: orderArrays,
                 },
             },
             include: {
                 company: true
             }
-        })
-        newObject.forEach((element, i) => {
-            element.billNumber = `TKCF-${firstOrder[0].company.shortForm}-${firstOrder[0].id}/${year}`
         });
-        const order = await tx.order.updateMany({
+
+        if (!firstOrder || firstOrder.length === 0) {
+            throw new Error("No orders found for the given numbers");
+        }
+
+        const billNumber = `TKCF-${firstOrder[0].company.shortForm}-${firstOrder[0].id}/${year}`;
+        const defaultBuyerId = firstOrder[0].buyerId;
+
+        let sanitizedBills = body.map(item => {
+            return {
+                billNumber: billNumber,
+                unitPrice: item.unitPrice,
+                amount: item.amount,
+                invoiceAmount: item.invoiceAmount,
+                invoiceQuantity: item.invoiceQuantity,
+                containOrders: item.containOrders,
+                companyId: item.companyId,
+                buyerId: item.buyerId || defaultBuyerId,
+                fabricsId: item.fabricsId,
+                createdAt: item.createdAt ? new Date(item.createdAt) : new Date()
+            };
+        });
+
+        await tx.order.updateMany({
             where: {
                 orderNumber: {
-                    in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
+                    in: orderArrays,
                 },
             },
             data: {
-                billNumber: newObject[0].billNumber,
+                billNumber: billNumber,
                 isBillCreated: true,
                 isProformaInvoiceCreated: false,
             },
         });
-        const createManyProformaInvoice = await tx.billInformation.createMany({
-            data: newObject
-        })
-        return createManyProformaInvoice;
-    })
+
+        const createManyBills = await tx.billInformation.createMany({
+            data: sanitizedBills
+        });
+
+        return createManyBills;
+    });
 }
+
 function changeOrderAndDeletePi(containOrders, orderArrays) {
     return prisma.$transaction(async (tx) => {
-        const createManyProformaInvoice = await tx.proformaInvoice.deleteMany({
+        const deleteResult = await tx.proformaInvoice.deleteMany({
             where: {
                 containOrders: containOrders
             }
-        })
+        });
 
-        const order = await tx.order.updateMany({
+        await tx.order.updateMany({
             where: {
                 orderNumber: {
-                    in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
+                    in: orderArrays,
                 },
             },
             data: {
@@ -105,22 +152,22 @@ function changeOrderAndDeletePi(containOrders, orderArrays) {
             },
         });
 
-
-        return createManyProformaInvoice;
-    })
+        return deleteResult;
+    });
 }
+
 function changeOrderAndDeleteBills(containOrders, orderArrays) {
     return prisma.$transaction(async (tx) => {
-        const createManyProformaInvoice = await tx.billInformation.deleteMany({
+        const deleteResult = await tx.billInformation.deleteMany({
             where: {
                 containOrders: containOrders
             }
-        })
+        });
 
-        const order = await tx.order.updateMany({
+        await tx.order.updateMany({
             where: {
                 orderNumber: {
-                    in: orderArrays, // Assuming req.body.orderNumbers is your array of orderNumbers
+                    in: orderArrays,
                 },
             },
             data: {
@@ -131,45 +178,53 @@ function changeOrderAndDeleteBills(containOrders, orderArrays) {
             },
         });
 
+        return deleteResult;
+    });
+}
 
-        return createManyProformaInvoice;
-    })
-}
 const createProformaInvoice = async (req, res) => {
-    const body = req.body
-    const orderArrays = body[0].containOrders.split("_")
-    try {
-        const result = await transfer(orderArrays, body)
-        res.status(200).send(result)
-    } catch (error) {
-        console.log(error)
-        res.status(400).send({ error: "Proforma Invoice did not created Correctly" })
+    const body = req.body;
+    if (!body || body.length === 0) {
+        return res.status(400).send({ error: "Empty request body" });
     }
-}
+    const orderArrays = body[0].containOrders.split("_");
+    try {
+        const result = await transfer(orderArrays, body);
+        res.status(200).send(result);
+    } catch (error) {
+        console.error("Error creating Proforma Invoice:", error);
+        res.status(400).send({ error: error.message || "Proforma Invoice was not created correctly" });
+    }
+};
+
 const createBill = async (req, res) => {
-    const body = req.body
-    const orderArrays = body[0].containOrders.split("_")
-    try {
-        const result = await transferToBill(orderArrays, body)
-        res.status(200).send(result)
-    } catch (error) {
-        console.log(error)
-        res.status(400).send({ error: "Proforma Invoice did not created Correctly" })
+    const body = req.body;
+    if (!body || body.length === 0) {
+        return res.status(400).send({ error: "Empty request body" });
     }
-}
+    const orderArrays = body[0].containOrders.split("_");
+    try {
+        const result = await transferToBill(orderArrays, body);
+        res.status(200).send(result);
+    } catch (error) {
+        console.error("Error creating Bill:", error);
+        res.status(400).send({ error: error.message || "Bill was not created correctly" });
+    }
+};
+
 const getAllBill = async (req, res) => {
-    const { 
-        page = 1, 
-        limit = 50, 
-        term = '', 
-        companyName = '', 
+    const {
+        page = 1,
+        limit = 50,
+        term = '',
+        companyName = '',
         buyerName = '',
-        sort = 'desc' 
+        sort = 'desc'
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
     const parsedLimit = Math.max(1, parseInt(limit) || 50);
-    
+
     const andConditions = [];
 
     if (term) {
@@ -224,8 +279,8 @@ const getAllBill = async (req, res) => {
 
         const totalItems = new Set(allBillsCount.map(b => b.containOrders)).size;
 
-        res.status(200).send({ 
-            data: bills, 
+        res.status(200).send({
+            data: bills,
             total: totalItems,
             page: parsedPage,
             limit: parsedLimit
@@ -234,51 +289,16 @@ const getAllBill = async (req, res) => {
         console.error("Error fetching bills:", error);
         res.status(500).send({ error: "Internal Server Error" });
     }
-}
-// const getAllBill = async (req, res) => {
-//     const { page = 1, limit = 50 } = req.query;
-//     const parsedLimit = parseInt(limit);
-//     const offset = (parseInt(page) - 1) * parsedLimit;
-  
-//     try {
+};
 
-//       // Step 1: Get paginated distinct containOrders with latest entry
-//       const orders = await prisma.$queryRaw`
-//         SELECT DISTINCT ON ("containOrders") 
-//           b."id", b."billNumber", b."invoiceQuantity", b."invoiceAmount", b."containOrders", b."createdAt",
-//           c."companyName",
-//           buy."buyerName",
-//           f."fabricsName"
-//         FROM "billInformation" b
-//         LEFT JOIN "Company" c ON b."companyId" = c."id"
-//         LEFT JOIN "Buyer" buy ON b."buyerId" = buy."id"
-//         LEFT JOIN "FabricsType" f ON b."fabricsId" = f."id"
-//         ORDER BY b."containOrders", b."createdAt" DESC
-//         OFFSET ${offset}
-//         LIMIT ${parsedLimit};
-//       `;
-  
-//       // Step 2: Count total unique containOrders
-//       const countResult = await prisma.$queryRaw`
-//         SELECT COUNT(DISTINCT "containOrders") AS total FROM "billInformation";
-//       `;
-//       const total = parseInt(countResult[0].total);
-  
-//       res.status(200).send({ data: orders, total });
-//     } catch (error) {
-//       console.error(error);
-//       res.status(500).send({ error: "Something went wrong while fetching bills." });
-//     }
-//   };
-  
 const getAllProformaInvoices = async (req, res) => {
-    const { 
-        page = 1, 
-        limit = 50, 
-        term = '', 
-        companyName = '', 
+    const {
+        page = 1,
+        limit = 50,
+        term = '',
+        companyName = '',
         buyerName = '',
-        sort = 'desc' 
+        sort = 'desc'
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -313,8 +333,8 @@ const getAllProformaInvoices = async (req, res) => {
                     id: true,
                     piNumber: true,
                     fabricsName: true,
-                    totalPIQuantity: true,
-                    totalPIAmount: true,
+                    totalQuantity: true,
+                    amount: true,
                     containOrders: true,
                     billingWay: true,
                     createdAt: true,
@@ -337,8 +357,8 @@ const getAllProformaInvoices = async (req, res) => {
 
         const totalItems = new Set(allInvoicesCount.map(i => i.containOrders)).size;
 
-        res.status(200).send({ 
-            data: invoices, 
+        res.status(200).send({
+            data: invoices,
             total: totalItems,
             page: parsedPage,
             limit: parsedLimit
@@ -347,10 +367,9 @@ const getAllProformaInvoices = async (req, res) => {
         console.error("Error fetching proforma invoices:", error);
         res.status(500).send({ error: "Internal Server Error" });
     }
-}
+};
 
 const getSingleProformaInvoice = async (req, res) => {
-
     try {
         const orders = await prisma.proformaInvoice.findMany({
             where: {
@@ -366,160 +385,159 @@ const getSingleProformaInvoice = async (req, res) => {
     } catch (error) {
         res.status(404).send({ error: "Nothing Found !!!" });
     }
-}
+};
+
 const getSingleBill = async (req, res) => {
     try {
-    // console.log()
-    let orderNumbers = req.params.id
+        let orderNumbers = req.params.id;
+        if (orderNumbers?.includes("_")) {
+            orderNumbers = req.params.id.split("_");
+        } else {
+            orderNumbers = [orderNumbers];
+        }
 
-    if(orderNumbers?.includes("_")){
-        orderNumbers = req.params.id.split("_")
-    }else{
-        orderNumbers=[orderNumbers]
-    }
-    // console.log(orderNumbers)
-   
-        
         const orders = await prisma.order.findMany({
             where: {
-              orderNumber: {
-                in: orderNumbers,
-              },
+                orderNumber: {
+                    in: orderNumbers,
+                },
             },
             select: {
-              companyName: true,
-              buyerName: true,
-              fabricsId: true,
-              fabricsName:true,
-              deliveredQuantity: true,
-              season: true,
-              createdAt:true,
-              billNumber: true, // From Order model
-              company: {
-                select: {
-                  companyName: true,
-                  location: true,
-                },
-              },
-              buyer: {
-                select: {
-                  buyerName: true,
-                },
-              },
-              deliveryDetails: {
-                select: {
-                  order: {
+                companyName: true,
+                buyerName: true,
+                fabricsId: true,
+                fabricsName: true,
+                deliveredQuantity: true,
+                season: true,
+                createdAt: true,
+                billNumber: true,
+                company: {
                     select: {
-                      buyerName: true,
-                      sbNumber: true,
-                      programNumber: true,
-                      jobNumber: true,
-                      bookingNumber: true,
+                        companyName: true,
+                        location: true,
                     },
-                  },
-                  createdAt: true,
-                  id: true,
-                  deliveredQuantity: true,
                 },
-              },
+                buyer: {
+                    select: {
+                        buyerName: true,
+                    },
+                },
+                deliveryDetails: {
+                    select: {
+                        order: {
+                            select: {
+                                buyerName: true,
+                                sbNumber: true,
+                                programNumber: true,
+                                jobNumber: true,
+                                bookingNumber: true,
+                            },
+                        },
+                        createdAt: true,
+                        id: true,
+                        deliveredQuantity: true,
+                    },
+                },
             },
-          });
-          
-        //   console.log("here is the bill number",orders[0].billNumber)
-        let billNumber=orders[0].billNumber
-        // console.log(billNumber)
-          if(!billNumber){
-              throw new Error("Bill Number is not found !")
-            }
-      
-      
-            const bills= await prisma.billInformation.findMany({
-        where: {
-          billNumber:billNumber
-        },})
+        });
+
+        if (!orders || orders.length === 0) {
+            throw new Error("No orders found");
+        }
+
+        let billNumber = orders[0].billNumber;
+        if (!billNumber) {
+            throw new Error("Bill Number is not found !");
+        }
+
+        const bills = await prisma.billInformation.findMany({
+            where: {
+                billNumber: billNumber
+            },
+        });
 
         orders.forEach(order => {
             const matchingBills = bills.filter(bill => bill.fabricsId === order.fabricsId);
             if (matchingBills.length > 0) {
-              order.billDetails = matchingBills[0];
+                order.billDetails = matchingBills[0];
             }
-          });
-//     const rawOrders = await prisma.$queryRaw`
-//     SELECT o.companyName, o.buyerName, o.fabricsName, o.deliveredQuantity, o.season, o.bookingNumber as orderBookingNumber,
-//            b.bookingNumber as billBookingNumber, b.billNumber, b.unitPrice, b.amount, b.createdAt as billCreatedAt
-//     FROM Order o
-//     LEFT JOIN BillInformation b ON o.id = b.orderId
-//     WHERE o.orderNumber IN (${orderNumbers.join(', ')})
-//   `;
-//   console.log(rawOrders)
+        });
+
         res.status(200).send(orders);
     } catch (error) {
-        console.log(error)
-        res.status(404).send({ error: "Nothing Found !!!" });
+        console.log(error);
+        res.status(404).send({ error: error.message || "Nothing Found !!!" });
     }
-}
+};
+
 const deleteSingleProformaInvoice = async (req, res) => {
-    const params = req.params.id
-    const orderArrays = params.split("_")
+    const params = req.params.id;
+    const orderArrays = params.split("_");
     try {
-        const result = await changeOrderAndDeletePi(params, orderArrays)
-        res.status(200).send(result)
+        const result = await changeOrderAndDeletePi(params, orderArrays);
+        res.status(200).send(result);
     } catch (error) {
-        console.log(error)
-        res.status(400).send({ error: "Proforma Invoice did not Deleted Correctly" })
+        console.log(error);
+        res.status(400).send({ error: "Proforma Invoice did not Deleted Correctly" });
     }
-}
+};
+
 const deleteSingleBill = async (req, res) => {
-    const params = req.params.id
-    const orderArrays = params.split("_")
-    // console.log(params)
+    const params = req.params.id;
+    const orderArrays = params.split("_");
     try {
-        const result = await changeOrderAndDeleteBills(params, orderArrays)
-        res.status(200).send(result)
+        const result = await changeOrderAndDeleteBills(params, orderArrays);
+        res.status(200).send(result);
     } catch (error) {
-
-        res.status(400).send({ error: "Bill did not Deleted Correctly" })
+        res.status(400).send({ error: "Bill did not Deleted Correctly" });
     }
-}
-const changeBillNumber=async(req,res)=>{
-    try{
-        let orderNumbers = req.params.id
-     
-const billNumber=req.query.billNumber
-// console.log(billNumber)
-let individualOrder=[]
-if(orderNumbers?.includes("_")){
-    individualOrder = req.params.id.split("_")
-}else{
-    individualOrder=[orderNumbers]
-}
-const bills=await prisma.billInformation.updateMany({
-    where:{
-        containOrders:orderNumbers
-    },
-    data:{
-        billNumber:billNumber
+};
+
+const changeBillNumber = async (req, res) => {
+    try {
+        let orderNumbers = req.params.id;
+        const billNumber = req.query.billNumber;
+        let individualOrder = [];
+        if (orderNumbers?.includes("_")) {
+            individualOrder = req.params.id.split("_");
+        } else {
+            individualOrder = [orderNumbers];
+        }
+
+        const bills = await prisma.billInformation.updateMany({
+            where: {
+                containOrders: orderNumbers
+            },
+            data: {
+                billNumber: billNumber
+            }
+        });
+
+        const orders = await prisma.order.updateMany({
+            where: {
+                orderNumber: {
+                    in: individualOrder,
+                },
+            },
+            data: {
+                billNumber: billNumber
+            }
+        });
+
+        res.status(200).send(orders);
+    } catch (error) {
+        res.status(400).send({ error: error.message });
     }
-})
-const orders=await prisma.order.updateMany({
-    where:{
-        orderNumber: {
-            in: individualOrder,
-          },
-    },
-    data:{
-        billNumber:billNumber
-    }
-})
+};
 
-// console.log(bills)
-res.status(200).send(orders)
-    }catch(error){
-        // console.log(error)
-        res.status(200).send(error)
-    }
-}
-
-
-
-module.exports = { createProformaInvoice, changeBillNumber,deleteSingleBill, getSingleBill, getAllBill, getAllProformaInvoices, createBill, getSingleProformaInvoice, deleteSingleProformaInvoice }
+module.exports = {
+    createProformaInvoice,
+    changeBillNumber,
+    deleteSingleBill,
+    getSingleBill,
+    getAllBill,
+    getAllProformaInvoices,
+    createBill,
+    getSingleProformaInvoice,
+    deleteSingleProformaInvoice
+};
