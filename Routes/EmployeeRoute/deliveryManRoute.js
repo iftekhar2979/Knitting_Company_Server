@@ -1,11 +1,10 @@
 const express = require('express')
 const { protect } = require('../../Middlewares/protectMiddleware')
 const router = express.Router()
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+const db = require('../../models')
 const getAllDeliveryMan = async (req, res) => {
     try {
-        const findAllDeliveryMan = await prisma.deliveryMen.findMany()
+        const findAllDeliveryMan = await db.DeliveryMen.findAll()
         res.status(200).send(findAllDeliveryMan)
     } catch (error) {
         res.status(400).send(error)

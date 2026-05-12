@@ -1,6 +1,5 @@
-const { PrismaClient, Prisma } = require('@prisma/client');
-
-const prisma = new PrismaClient()
+const db = require('../../models');
+const { Op } = db.Sequelize;
 
 const getAllOrder = async (req, res) => {
     const {
@@ -12,7 +11,7 @@ const getAllOrder = async (req, res) => {
         fabricsName = '',
         season = '',
         status = '',
-        sort = 'desc'
+        sort = 'DESC'
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -20,78 +19,70 @@ const getAllOrder = async (req, res) => {
     const andConditions = [];
 
     if (orderNumber) {
-        andConditions.push({ orderNumber: { contains: orderNumber } });
+        andConditions.push({ orderNumber: { [Op.like]: `%${orderNumber}%` } });
     }
 
     if (companyName) {
         andConditions.push({
-            OR: [
-                { companyName: { contains: companyName } },
-                { company: { companyName: { contains: companyName } } }
+            [Op.or]: [
+                { companyName: { [Op.like]: `%${companyName}%` } },
+                { '$company.companyName$': { [Op.like]: `%${companyName}%` } }
             ]
         });
     }
 
     if (buyerName) {
         andConditions.push({
-            OR: [
-                { buyerName: { contains: buyerName } },
-                { buyer: { buyerName: { contains: buyerName } } }
+            [Op.or]: [
+                { buyerName: { [Op.like]: `%${buyerName}%` } },
+                { '$buyer.buyerName$': { [Op.like]: `%${buyerName}%` } }
             ]
         });
     }
 
     if (fabricsName) {
-        console.log(fabricsName)
         andConditions.push({
-            OR: [
-                { fabricsName: { contains: fabricsName } },
-                { fabricsType: { fabricsName: { contains: fabricsName } } }
+            [Op.or]: [
+                { fabricsName: { [Op.like]: `%${fabricsName}%` } },
+                { '$fabricsType.fabricsName$': { [Op.like]: `%${fabricsName}%` } }
             ]
         });
     }
 
     if (season) {
-        andConditions.push({ season: { contains: season } });
+        andConditions.push({ season: { [Op.like]: `%${season}%` } });
     }
 
     if (status) {
-        andConditions.push({ status: { contains: status } });
+        andConditions.push({ status: { [Op.like]: `%${status}%` } });
     }
 
-    const where = andConditions.length > 0 ? { AND: andConditions } : {};
-    console.log(where)
+    const where = andConditions.length > 0 ? { [Op.and]: andConditions } : {};
+
     try {
-        const [orders, total] = await Promise.all([
-            prisma.order.findMany({
-                where,
-                orderBy: [
-                    {
-                        createdAt: sort,
-                    },
-                ],
-                take: parsedLimit,
-                skip: (parsedPage - 1) * parsedLimit,
-                include: {
-                    company: {
-                        select: {
-                            companyName: true,
-                        }
-                    },
-                    buyer: {
-                        select: {
-                            buyerName: true,
-                        }
-                    },
-                    fabricsType: {
-                        select: {
-                            fabricsName: true,
-                        }
-                    }
+        const { rows: orders, count: total } = await db.Order.findAndCountAll({
+            where,
+            order: [['createdAt', sort.toUpperCase()]],
+            limit: parsedLimit,
+            offset: (parsedPage - 1) * parsedLimit,
+            include: [
+                {
+                    model: db.Company,
+                    as: 'company',
+                    attributes: ['companyName']
+                },
+                {
+                    model: db.Buyer,
+                    as: 'buyer',
+                    attributes: ['buyerName']
+                },
+                {
+                    model: db.FabricsType,
+                    as: 'fabricsType',
+                    attributes: ['fabricsName']
                 }
-            }),
-            prisma.order.count({ where })
-        ]);
+            ]
+        });
 
         res.send({
             orders,
@@ -105,6 +96,7 @@ const getAllOrder = async (req, res) => {
         res.status(500).send({ error: "Internal Server Error" });
     }
 }
+
 const getAllOrderForInvoice = async (req, res) => {
     const {
         page = 1,
@@ -113,7 +105,7 @@ const getAllOrderForInvoice = async (req, res) => {
         companyName = '',
         buyerName = '',
         fabricsName = '',
-        sort = 'desc' // default sort for orderQuantity
+        sort = 'DESC'
     } = req.query;
 
     const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -121,65 +113,63 @@ const getAllOrderForInvoice = async (req, res) => {
     const andConditions = [];
 
     if (orderNumber) {
-        andConditions.push({ orderNumber: { contains: orderNumber } });
+        andConditions.push({ orderNumber: { [Op.like]: `%${orderNumber}%` } });
     }
 
     if (companyName) {
         andConditions.push({
-            OR: [
-                { companyName: { contains: companyName } },
-                { company: { companyName: { contains: companyName } } }
+            [Op.or]: [
+                { companyName: { [Op.like]: `%${companyName}%` } },
+                { '$company.companyName$': { [Op.like]: `%${companyName}%` } }
             ]
         });
     }
 
     if (buyerName) {
         andConditions.push({
-            OR: [
-                { buyerName: { contains: buyerName } },
-                { buyer: { buyerName: { contains: buyerName } } }
+            [Op.or]: [
+                { buyerName: { [Op.like]: `%${buyerName}%` } },
+                { '$buyer.buyerName$': { [Op.like]: `%${buyerName}%` } }
             ]
         });
     }
 
     if (fabricsName) {
         andConditions.push({
-            OR: [
-                { fabricsName: { contains: fabricsName } },
-                { fabricsType: { fabricsName: { contains: fabricsName } } }
+            [Op.or]: [
+                { fabricsName: { [Op.like]: `%${fabricsName}%` } },
+                { '$fabricsType.fabricsName$': { [Op.like]: `%${fabricsName}%` } }
             ]
         });
     }
 
-    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+    const where = andConditions.length > 0 ? { [Op.and]: andConditions } : {};
 
     try {
-        const [orders, total] = await Promise.all([
-            prisma.order.findMany({
-                where,
-                orderBy: [
-                    {
-                        orderQuantity: sort,
-                    },
-                    {
-                        createdAt: 'desc',
-                    }
-                ],
-                take: parsedLimit,
-                skip: (parsedPage - 1) * parsedLimit,
-                select: {
-                    id: true,
-                    companyName: true,
-                    orderNumber: true,
-                    fabricsName: true,
-                    orderQuantity: true,
-                    buyerName: true,
-                    isBillCreated: true,
-                    isProformaInvoiceCreated: true
-                }
-            }),
-            prisma.order.count({ where })
-        ]);
+        const { rows: orders, count: total } = await db.Order.findAndCountAll({
+            where,
+            order: [
+                ['orderQuantity', sort.toUpperCase()],
+                ['createdAt', 'DESC']
+            ],
+            limit: parsedLimit,
+            offset: (parsedPage - 1) * parsedLimit,
+            attributes: [
+                'id',
+                'companyName',
+                'orderNumber',
+                'fabricsName',
+                'orderQuantity',
+                'buyerName',
+                'isBillCreated',
+                'isProformaInvoiceCreated'
+            ],
+            include: [
+                { model: db.Company, as: 'company', attributes: [] },
+                { model: db.Buyer, as: 'buyer', attributes: [] },
+                { model: db.FabricsType, as: 'fabricsType', attributes: [] }
+            ]
+        });
 
         res.send({
             orders,
@@ -193,62 +183,67 @@ const getAllOrderForInvoice = async (req, res) => {
         res.status(500).send({ error: "Internal Server Error" });
     }
 }
+
 const getSingleOrder = async (req, res) => {
     const orderId = parseFloat(req.params.id)
     try {
-        const orders = await prisma.order.findUnique({
+        const orders = await db.Order.findOne({
             where: {
                 id: orderId
             },
-            include: {
-                company: true,
-
-            },
+            include: [
+                {
+                    model: db.Company,
+                    as: 'company'
+                }
+            ],
         });
         res.status(200).send(orders);
     } catch (error) {
         res.status(404).send(error);
     }
 }
+
 const getSingleOrderForEdit = async (req, res) => {
     const orderId = parseFloat(req.params.id)
     try {
-        const orders = await prisma.order.findUnique({
+        const orders = await db.Order.findOne({
             where: {
                 id: orderId
             },
-            include: {
-                company: true,
-                buyer: true,
-                fabricsType: true,
-                details: true
-
-            },
+            include: [
+                { model: db.Company, as: 'company' },
+                { model: db.Buyer, as: 'buyer' },
+                { model: db.FabricsType, as: 'fabricsType' },
+                { model: db.OrderDetails, as: 'details' }
+            ],
         });
         res.status(200).send(orders);
     } catch (error) {
         res.status(404).send(error);
     }
 }
+
 const getSingleOrderQuantityInfo = async (req, res) => {
     const orderId = parseFloat(req.params.id)
     try {
-        const orders = await prisma.order.findUnique({
+        const orders = await db.Order.findOne({
             where: {
                 id: orderId
             },
-            select: {
-                orderQuantity: true,
-                restQuantity: true,
-                deliveredQuantity: true,
-                status: true,
-            }
+            attributes: [
+                'orderQuantity',
+                'restQuantity',
+                'deliveredQuantity',
+                'status'
+            ]
         });
         res.status(200).send(orders);
     } catch (error) {
         res.status(404).send(error);
     }
 }
+
 const createOrder = async (req, res) => {
     const orderBody = req.body
     if (!orderBody.buyerId) {
@@ -256,7 +251,7 @@ const createOrder = async (req, res) => {
     }
     try {
         if (orderBody.orderNumber) {
-            const existingOrder = await prisma.order.findFirst({
+            const existingOrder = await db.Order.findOne({
                 where: {
                     orderNumber: orderBody.orderNumber
                 }
@@ -267,81 +262,69 @@ const createOrder = async (req, res) => {
             }
         }
 
-        const newOrder = await prisma.order.create({
-            data: orderBody
-        });
-
-        // const io = getIo();
+        const newOrder = await db.Order.create(orderBody);
 
         return res.status(200).send(newOrder);
     } catch (error) {
         return res.status(400).send(error.message);
     }
-
 }
+
 const updateOrder = async (req, res) => {
     const id = parseFloat(req.params.id)
     const updatedBody = req.body
     try {
-        const updatedOrder = await prisma.order.update({
+        await db.Order.update(updatedBody, {
             where: {
                 id: id
-            },
-            data: updatedBody
+            }
         });
+        const updatedOrder = await db.Order.findByPk(id);
         return res.status(200).send({ isUpdated: true, updatedOrder });
     } catch (error) {
         console.log(error)
         return res.status(400).send({ isUpdated: false, error: error.message });
     }
-
 }
+
 const removeOrder = async (req, res) => {
     const id = parseFloat(req.params.id)
 
     try {
-        const updatedOrder = await prisma.order.delete({
+        const deletedOrder = await db.Order.findByPk(id);
+        await db.Order.destroy({
             where: {
                 id: id
             },
-
         });
 
-
-        return res.status(200).send({ isDeleted: true, updatedOrder });
+        return res.status(200).send({ isDeleted: true, updatedOrder: deletedOrder });
     } catch (error) {
         console.log(error)
         return res.status(400).send({ isDeleted: false, error: error.message });
     }
-
 }
+
 const findOrderWithPo = async (req, res) => {
-    // console.log(req.body)
     const orderNumbers = req.body.map(num => String(num));
 
     try {
-        const ordersCheck = await prisma.order.findMany({
+        const ordersCheck = await db.Order.findAll({
             where: {
                 orderNumber: {
-                    in: orderNumbers, // Assuming req.body is your array of orderNumbers
+                    [Op.in]: orderNumbers,
                 },
             },
-            select: {
-                id: true,
-                companyId: true,
-                buyerId: true,
-            },
-            distinct: ["companyId"],
+            attributes: ['id', 'companyId', 'buyerId'],
+            group: ['companyId'],
         });
 
-        // Step 2: If more than one companyId is found, throw an error
         if (ordersCheck.length > 1) {
             return res.status(404).send("Order numbers belong to different companies and Different Buyers");
         }
 
-        // Using Prisma's parameterized query to avoid SQL injection
-        const result = await prisma.$queryRaw`
-            SELECT 
+        const result = await db.sequelize.query(
+            `SELECT 
               companyId, 
               fabricsName, 
               fabricsId, 
@@ -350,12 +333,16 @@ const findOrderWithPo = async (req, res) => {
             FROM 
               \`Order\`
             WHERE 
-              orderNumber IN (${Prisma.join(orderNumbers)})
+              orderNumber IN (?)
             GROUP BY 
               companyId, 
               fabricsName, 
-              fabricsId;
-        `;
+              fabricsId;`,
+            {
+                replacements: [orderNumbers],
+                type: db.Sequelize.QueryTypes.SELECT
+            }
+        );
 
         console.log(result);
         return res.status(200).send(result);
@@ -364,26 +351,5 @@ const findOrderWithPo = async (req, res) => {
         return res.status(404).send(error);
     }
 }
-
-// const findOrderWithPo = async (req, res) => {
-//     try {
-//         const orders = await prisma.order.findMany({
-
-//             where: {
-//                 orderNumber: {
-//                     in: req.body
-//                 }, 
-//             },
-//             // _sum: {
-//             //     orderQuantity: true,
-//             // },
-//         })
-//         res.send(orders);
-//     } catch (error) {
-//         console.log(error)
-//         res.send(error);
-//     }
-// }
-
 
 module.exports = { getAllOrder, findOrderWithPo, getSingleOrderForEdit, getAllOrderForInvoice, getSingleOrderQuantityInfo, getSingleOrder, createOrder, updateOrder, removeOrder }

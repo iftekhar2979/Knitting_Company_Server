@@ -2,9 +2,8 @@ const express = require('express')
 const { getAllOrder, findOrderWithPo, getSingleOrder, createOrder, updateOrder, removeOrder, getSingleOrderQuantityInfo, getAllOrderForInvoice, getSingleOrderForEdit } = require('../../Controller/OrderController/orderController')
 const { protect } = require('../../Middlewares/protectMiddleware')
 const { validateOrder } = require('../../Middlewares/validateOrderMiddleware')
-const { PrismaClient, Prisma } = require('@prisma/client');
+const db = require('../../models')
 
-const prisma = new PrismaClient()
 const router = express.Router()
 router.get('/api/order', protect, getAllOrder)
 router.get('/api/v1/order', protect, getAllOrderForInvoice)
@@ -23,10 +22,11 @@ router.patch('/api/orders/:id/status', async (req, res) => {
         return res.status(400).json({ error: "Status is required" });
     }
     try {
-        const updatedOrder = await prisma.order.update({
-            where: { id: orderId },
-            data: { status: status, updatedAt: new Date() },
-        });
+        await db.Order.update(
+            { status: status, updatedAt: new Date() },
+            { where: { id: orderId } }
+        );
+        const updatedOrder = await db.Order.findByPk(orderId);
         res.status(200).json({ message: "Status Updated", updatedOrder });
     } catch (error) {
         res.status(500).json({ error: "An error occurred while updating the order status" });

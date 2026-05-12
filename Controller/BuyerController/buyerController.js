@@ -1,15 +1,13 @@
 
-const {PrismaClient}=require('@prisma/client')
-const prisma = new PrismaClient()
+const db = require('../../models');
 
-const getSingleBuyer= async (req, res) => {
-    const buyerId =parseFloat(req.params.id)
+const getSingleBuyer = async (req, res) => {
+    const buyerId = parseFloat(req.params.id)
     try {
-        const buyer= await prisma.buyer.findFirst({
+        const buyer = await db.Buyer.findOne({
             where: {
                 id: buyerId,
             },
-
         });
         res.status(200).send(buyer);
     } catch (error) {
@@ -18,56 +16,55 @@ const getSingleBuyer= async (req, res) => {
 }
 const getAllBuyers = async (req, res) => {
     try {
-        const buyers = await prisma.buyer.findMany({});
+        const buyers = await db.Buyer.findAll({});
         res.status(200).send(buyers);
     } catch (error) {
         res.status(404).send(error);
     }
 }
-const createBuyer=async(req,res)=>{
-    const body=req.body
+const createBuyer = async (req, res) => {
+    const body = req.body
     try {
-        const newBuyer= await prisma.buyer.create({
-           data:body
-        });
-       return res.status(200).send(newBuyer);
+        const newBuyer = await db.Buyer.create(body);
+        return res.status(200).send(newBuyer);
     } catch (error) {
         console.log(error)
-        return  res.status(400).send(error.message);
+        return res.status(400).send(error.message);
     }
 }
-const updateBuyer= async (req, res) => {
-    const id=parseFloat(req.params.id)
+const updateBuyer = async (req, res) => {
+    const id = parseFloat(req.params.id)
     const updatedBody = req.body
     try {
-        const updatedBuyer= await prisma.buyer.update({
-            where:{
-                id:id
-            },
-            data: updatedBody
+        await db.Buyer.update(updatedBody, {
+            where: {
+                id: id
+            }
         });
-        return res.status(200).send({isUpdated:true,updatedBuyer});
+        const updatedBuyer = await db.Buyer.findByPk(id);
+        return res.status(200).send({ isUpdated: true, updatedBuyer });
     } catch (error) {
         console.log(error)
-        return res.status(400).send({isUpdated:false, error:error.message});
+        return res.status(400).send({ isUpdated: false, error: error.message });
     }
-    
+
 }
-const removeBuyer=async(req,res)=>{
-    const id=parseFloat(req.params.id)
-    
+const removeBuyer = async (req, res) => {
+    const id = parseFloat(req.params.id)
+
     try {
-        const removeBuyer= await prisma.buyer.delete({
-            where:{
-                id:id
+        const deletedBuyer = await db.Buyer.findByPk(id);
+        await db.Buyer.destroy({
+            where: {
+                id: id
             },
-           
+
         });
-        return res.status(200).send({isDeleted:true, removeBuyer});
+        return res.status(200).send({ isDeleted: true, removeBuyer: deletedBuyer });
     } catch (error) {
         console.log(error)
-        return res.status(400).send({isDeleted:false ,error:error.message});
+        return res.status(400).send({ isDeleted: false, error: error.message });
     }
-    
+
 }
-module.exports={getAllBuyers,getSingleBuyer,createBuyer,updateBuyer,removeBuyer}
+module.exports = { getAllBuyers, getSingleBuyer, createBuyer, updateBuyer, removeBuyer }

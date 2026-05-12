@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+const db = require('../../models/index.js');
 const { io } = require('../../index.js');
 const { generateToken } = require('../../utils/generateToken.js')
 const { compareHashPassword, generateHashedPassword, } = require('../../utils/generateHashedPassword.js')
@@ -8,6 +7,7 @@ const { sendEmail } = require('../../utils/mail.js');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const config = require('../../src/config/config.js');
+const { Op } = require('sequelize');
 
 // Registration
 const registerUser = asyncHandler(async (req, res) => {
@@ -16,7 +16,7 @@ const registerUser = asyncHandler(async (req, res) => {
   if (!email || !password) throw new Error(`Provide All User Details`);
 
   // Check Exicting User
-  const existingUser = await prisma.user.findFirst({
+  const existingUser = await db.User.findOne({
     where: {
       email: email,
     },
@@ -28,13 +28,13 @@ const registerUser = asyncHandler(async (req, res) => {
   // Register New User
   const hashedPassword = await generateHashedPassword(password);
 
-  const newUser = await prisma.user.create({
-    data: { email, password: hashedPassword }
+  const newUser = await db.User.create({
+    email, password: hashedPassword 
   });
   if (newUser) {
-    generateToken(res, newUser._id);
+    generateToken(res, newUser.id);
     res.status(201).json({
-      _id: newUser._id,
+      _id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       isAdmin: newUser.isAdmin,
@@ -54,7 +54,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (!email || !password) throw new Error(`Provide Valid User Details`);
   
     // User Data Check
-    const validUser = await prisma.user.findFirst({
+    const validUser = await db.User.findOne({
         where: {
            email:email,
         },
@@ -107,7 +107,7 @@ const registerUser = asyncHandler(async (req, res) => {
   
   // Update User Data
    const updateUserProfile = asyncHandler(async (req, res) => {
-    const user = await userModel.findById(req.user._id);
+    const user = await db.User.findByPk(req.user.id);
     // Check User
     if (user) {
       user.name = req.body.name || user.name;
@@ -118,7 +118,7 @@ const registerUser = asyncHandler(async (req, res) => {
       }
       const updatedUser = await user.save();
       const data = {
-        _id: updatedUser._id,
+        _id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
         isAdmin: user.isAdmin,
@@ -137,7 +137,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const getSingleUser = async (req, res) => {
     const userId =parseFloat(req.params.id)
     try {
-        const user = await prisma.user.findFirst({
+        const user = await db.User.findOne({
             where: {
                 id: userId,
             },
@@ -150,7 +150,7 @@ const getSingleUser = async (req, res) => {
 }
 const getAllUsers = async (req, res) => {
     try {
-        const companiesWithBuyers = await prisma.user.findMany({});
+        const companiesWithBuyers = await db.User.findAll({});
         res.status(200).send(companiesWithBuyers);
     } catch (error) {
         res.status(404).send(error);
@@ -159,9 +159,7 @@ const getAllUsers = async (req, res) => {
 const createUser=async(req,res)=>{
     const body=req.body
     try {
-        const newUser = await prisma.user.create({
-           data:body
-        });
+        const newUser = await db.User.create(body);
        return res.status(200).send(newUser);
     } catch (error) {
         console.log(error)
@@ -172,12 +170,13 @@ const updateUser = async (req, res) => {
     const id=parseFloat(req.params.id)
     const updatedBody = req.body
     try {
-        const updatedUser = await prisma.user.update({
+        const [updatedRowsCount, updatedUsers] = await db.User.update(updatedBody, {
             where:{
                 id:id
             },
-            data: updatedBody
+            returning: true
         });
+        const updatedUser = updatedUsers ? updatedUsers[0] : await db.User.findByPk(id);
         return res.status(200).send({isUpdated:true,updatedUser});
     } catch (error) {
         console.log(error)
@@ -189,13 +188,14 @@ const removeUser=async(req,res)=>{
     const id=parseFloat(req.params.id)
     
     try {
-        const removeUser = await prisma.user.delete({
+        const deletedUser = await db.User.findByPk(id);
+        await db.User.destroy({
             where:{
                 id:id
             },
            
         });
-        return res.status(200).send({isDeleted:true, removeUser});
+        return res.status(200).send({isDeleted:true, removeUser: deletedUser});
     } catch (error) {
         console.log(error)
         return res.status(400).send({isDeleted:false ,error:error.message});
@@ -206,14 +206,14 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
   if (!email) throw new Error("Please provide your email");
 
-  const user = await prisma.user.findFirst({ where: { email } });
+  const user = await db.User.findOne({ where: { email } });
   if (!user) throw new Error("User not found with this email");
 
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  await prisma.passwordOTP.deleteMany({ where: { email } });
-  await prisma.passwordOTP.create({
-    data: { email, otp, expiresAt },
+  await db.PasswordOTP.destroy({ where: { email } });
+  await db.PasswordOTP.create({
+     email, otp, expiresAt ,
   });
 
   await sendEmail({
@@ -233,9 +233,9 @@ const resendOTP = asyncHandler(async (req, res) => {
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  await prisma.passwordOTP.deleteMany({ where: { email } });
-  await prisma.passwordOTP.create({
-    data: { email, otp, expiresAt },
+  await db.PasswordOTP.destroy({ where: { email } });
+  await db.PasswordOTP.create({
+     email, otp, expiresAt ,
   });
 
   await sendEmail({
@@ -252,8 +252,12 @@ const verifyOTP = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
   if (!email || !otp) throw new Error("Please provide email and OTP");
 
-  const otpRecord = await prisma.passwordOTP.findFirst({
-    where: { email, otp, expiresAt: { gt: new Date() } },
+  const otpRecord = await db.PasswordOTP.findOne({
+    where: { 
+      email, 
+      otp, 
+      expiresAt: { [Op.gt]: new Date() } 
+    },
   });
 
   if (!otpRecord) throw new Error("Invalid or expired OTP");
@@ -273,13 +277,13 @@ const resetPassword = asyncHandler(async (req, res) => {
     const email = decoded.email;
 
     const hashedPassword = await generateHashedPassword(newPassword);
-    await prisma.user.update({
-      where: { email },
-      data: { password: hashedPassword },
-    });
+    await db.User.update(
+      { password: hashedPassword },
+      { where: { email } },
+    );
 
     // Delete the OTP record after successful reset
-    await prisma.passwordOTP.deleteMany({ where: { email } });
+    await db.PasswordOTP.destroy({ where: { email } });
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (err) {
@@ -299,3 +303,4 @@ module.exports = {
   verifyOTP, 
   resetPassword 
 }
+

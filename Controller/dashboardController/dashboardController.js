@@ -1,10 +1,10 @@
-const { PrismaClient, Prisma } = require('@prisma/client');
-const prisma = new PrismaClient()
+const db = require('../../models/index.js');
+const { Op } = require('sequelize');
 
 async function getPopularCharts(req, res) {
     try {
-        const result = await prisma.$queryRaw(
-            Prisma.sql`SELECT
+        const result = await db.sequelize.query(
+            `SELECT
       *
     FROM
       (
@@ -59,9 +59,9 @@ async function getPopularCharts(req, res) {
   ) AS buyer
   ORDER BY
       category
-      
+
   DESC
-      ;`
+      ;`, { type: db.Sequelize.QueryTypes.SELECT }
         )
         const transformedData = [
             {
@@ -102,8 +102,8 @@ async function getPopularCharts(req, res) {
 
 async function getUnitWiseGraph(req, res) {
     try {
-        const result = await prisma.$queryRaw(
-            Prisma.sql`SELECT
+        const result = await db.sequelize.query(
+            `SELECT
     m.name AS month,
     SUM(CASE WHEN o.unit = 'Fabric' THEN 1 ELSE 0 END) AS fabric,
     SUM(CASE WHEN o.unit = 'knitting' THEN 1 ELSE 0 END) AS knitting
@@ -114,10 +114,10 @@ JOIN
 WHERE
     o.targetDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
 GROUP BY
-    m.name
+    m.id, m.name
 ORDER BY
     m.id;
-`)
+`, { type: db.Sequelize.QueryTypes.SELECT })
 
         return res.status(200).send(result)
     } catch (error) {
@@ -128,8 +128,8 @@ ORDER BY
 }
 async function getFabricChart(req, res) {
     try {
-        const result = await prisma.$queryRaw(
-            Prisma.sql`SELECT
+        const result = await db.sequelize.query(
+            `SELECT
     fabricsName AS name,
     COUNT(id) AS totalOrder
 FROM
@@ -140,9 +140,9 @@ ORDER BY
     totalOrder DESC
 LIMIT 4
 
-`)
-        const findingOther = await prisma.$queryRaw(
-            Prisma.sql`SELECT
+`, { type: db.Sequelize.QueryTypes.SELECT })
+        const findingOther = await db.sequelize.query(
+            `SELECT
     'Other' AS fabrics,
     SUM(totalOrder) AS totalOrder
 FROM (
@@ -158,7 +158,7 @@ FROM (
     LIMIT 4, 18446744073709551615 -- Skip the first 4 results and include the rest
 ) AS subquery;
 
-`)
+`, { type: db.Sequelize.QueryTypes.SELECT })
         let newValue = result?.map(item => {
             return {
                 fabrics: item.name,
@@ -248,29 +248,26 @@ async function getAllCompanyOrdersAndFabrics(req, res) {
     }
 
     try {
-        const companyCount = await prisma.company.count({
+        const companyCount = await db.Company.count({
             where: {
                 createdAt: {
-                    gte: startDate,
-                    lte: endDate,
+                    [Op.between]: [startDate, endDate],
                 },
             },
         });
 
-        const orderCount = await prisma.order.count({
+        const orderCount = await db.Order.count({
             where: {
                 createdAt: {
-                    gte: startDate,
-                    lte: endDate,
+                    [Op.between]: [startDate, endDate],
                 },
             },
         });
 
-        const fabricCount = await prisma.fabricsType.count({
+        const fabricCount = await db.FabricsType.count({
             where: {
                 createdAt: {
-                    gte: startDate,
-                    lte: endDate,
+                    [Op.between]: [startDate, endDate],
                 },
             },
 

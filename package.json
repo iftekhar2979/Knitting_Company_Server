@@ -1,12 +1,9 @@
 {
   "scripts": {
     "start": "nodemon index.js",
-    "dev": "nodemon --watch index.js",
-    "postinstall": "prisma generate",
-    "seed": "node prisma/seed.js"
+    "dev": "nodemon --watch index.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.8.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -16,12 +13,11 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^4.2.1",
     "morgan": "^1.10.0",
+    "mysql2": "^3.22.3",
     "nodemailer": "^8.0.5",
     "nodemon": "^3.0.2",
+    "sequelize": "^6.37.8",
     "socket.io": "^4.7.5",
     "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "prisma": "^5.8.0"
   }
 }

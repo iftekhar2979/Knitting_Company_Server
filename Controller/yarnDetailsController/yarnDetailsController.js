@@ -1,23 +1,23 @@
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+const db = require('../../models/index.js');
 
 const getSingleYarnDetails = async (req, res) => {
     const orderId = parseFloat(req.params.id)
 
     try {
-        const yarns = await prisma.yarnInformation.findMany({
+        const yarns = await db.YarnInformation.findAll({
             where: {
                 orderId: orderId
             },
-            include: {
-                company: {
-                    select: {
-                        companyName: true,
-                        location:true
-                    }
+            include: [
+                {
+                    model: db.Company,
+                    as: 'company',
+                    attributes: ['companyName', 'location']
                 },
-                yarnInformationWithDetails: true
-            },
+                {
+                    model: db.YarnInformationWithDetails
+                }
+            ],
         });
         res.status(200).send(yarns);
     } catch (error) {
@@ -29,9 +29,7 @@ const createYarnDetails = async (req, res) => {
     const yarnBody = req.body
     console.log(yarnBody)
     try {
-        const newYarnDetails = await prisma.yarnInformation.create({
-            data: yarnBody
-        });
+        const newYarnDetails = await db.YarnInformation.create(yarnBody);
         return res.status(200).send(newYarnDetails);
     } catch (error) {
         console.log(error)
@@ -43,12 +41,12 @@ const updateYarnDetails = async (req, res) => {
     const id = parseFloat(req.params.id)
     const updatedBody = req.body
     try {
-        const updatedOrder = await prisma.yarnInformation.update({
+        await db.YarnInformation.update(updatedBody, {
             where: {
                 id: id
-            },
-            data: updatedBody
+            }
         });
+        const updatedOrder = await db.YarnInformation.findByPk(id);
         return res.status(200).send({ isUpdated: true, updatedOrder });
     } catch (error) {
         console.log(error)
@@ -58,12 +56,13 @@ const updateYarnDetails = async (req, res) => {
 const removeYarnDetails = async (req, res) => {
     const id = parseFloat(req.params.id)
     try {
-        const updatedOrder = await prisma.yarnInformation.delete({
+        const deletedOrder = await db.YarnInformation.findByPk(id);
+        await db.YarnInformation.destroy({
             where: {
                 id: id
             },
         });
-        return res.status(200).send({ isDeleted: true, updatedOrder });
+        return res.status(200).send({ isDeleted: true, updatedOrder: deletedOrder });
     } catch (error) {
         console.log(error)
         return res.status(400).send({ isDeleted: false, error: error.message });
