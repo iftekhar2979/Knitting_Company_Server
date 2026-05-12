@@ -1,3 +1,4 @@
+const { Sequelize } = require('sequelize');
 const db = require('../../models');
 const { Op } = db.Sequelize;
 
@@ -248,16 +249,109 @@ const getAllBill = async (req, res) => {
     ];
 
     try {
-        const { count, rows: bills } = await db.BillInformation.findAndCountAll({
-            where,
-            attributes: ['id', 'billNumber', 'invoiceQuantity', 'invoiceAmount', 'containOrders', 'createdAt'],
-            include,
-            group: ['containOrders'],
-            order: [['createdAt', sort.toUpperCase()]],
-            limit: parsedLimit,
-            offset: (parsedPage - 1) * parsedLimit,
-            subQuery: false
-        });
+       const { count, rows: bills } =
+    await db.BillInformation.findAndCountAll({
+        where,
+
+        attributes: [
+            'containOrders',
+
+            [Sequelize.fn('MAX', Sequelize.col('BillInformation.id')), 'id'],
+
+            [
+                Sequelize.fn(
+                    'MAX',
+                    Sequelize.col('BillInformation.billNumber')
+                ),
+                'billNumber'
+            ],
+
+            [
+                Sequelize.fn(
+                    'SUM',
+                    Sequelize.col('BillInformation.invoiceQuantity')
+                ),
+                'invoiceQuantity'
+            ],
+
+            [
+                Sequelize.fn(
+                    'SUM',
+                    Sequelize.col('BillInformation.invoiceAmount')
+                ),
+                'invoiceAmount'
+            ],
+
+            [
+                Sequelize.fn(
+                    'MAX',
+                    Sequelize.col('BillInformation.createdAt')
+                ),
+                'createdAt'
+            ],
+
+            [
+                Sequelize.fn(
+                    'MAX',
+                    Sequelize.col('company.companyName')
+                ),
+                'companyName'
+            ],
+
+            [
+                Sequelize.fn(
+                    'MAX',
+                    Sequelize.col('buyer.buyerName')
+                ),
+                'buyerName'
+            ],
+
+            [
+                Sequelize.fn(
+                    'MAX',
+                    Sequelize.col('fabricsType.fabricsName')
+                ),
+                'fabricsName'
+            ]
+        ],
+
+        include: [
+            {
+                model: db.Company,
+                as: 'company',
+                attributes: []
+            },
+            {
+                model: db.Buyer,
+                as: 'buyer',
+                attributes: []
+            },
+            {
+                model: db.FabricsType,
+                as: 'fabricsType',
+                attributes: []
+            }
+        ],
+
+        group: ['containOrders'],
+
+        order: [
+            [
+                Sequelize.fn(
+                    'MAX',
+                    Sequelize.col('BillInformation.createdAt')
+                ),
+                sort.toUpperCase()
+            ]
+        ],
+
+        limit: parsedLimit,
+        offset: (parsedPage - 1) * parsedLimit,
+
+        subQuery: false,
+
+        raw: true
+    });
 
         // Group by causes count to be an array of objects in some sequelize versions, or we might need a separate count
         const totalItems = await db.BillInformation.count({
