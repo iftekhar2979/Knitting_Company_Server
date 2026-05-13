@@ -19,9 +19,10 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE(6),
       allowNull: false,
       defaultValue: sequelize.literal('CURRENT_TIMESTAMP(6)'),
+      field: 'created_at',
     },
   }, {
-    tableName: 'FabricsType',
+    tableName: 'fabrics_types',
     timestamps: false,
   });
 

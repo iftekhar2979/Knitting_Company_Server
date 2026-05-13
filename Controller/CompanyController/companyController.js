@@ -15,6 +15,9 @@ const getSingleCompany = async (req, res) => {
                 }
             ],
         });
+        if (!companyWithBuyers) {
+            return res.status(404).send({ message: 'Company not found' });
+        }
         res.send(companyWithBuyers);
     } catch (error) {
         res.send(error);
@@ -52,6 +55,10 @@ const updateCompany = async (req, res) => {
     const id = parseFloat(req.params.id)
     const updatedBody = req.body
     try {
+        const company = await db.Company.findByPk(id);
+        if (!company) {
+            return res.status(404).send({ isUpdated: false, error: 'Company not found' });
+        }
         await db.Company.update(updatedBody, {
             where: {
                 id: id
@@ -71,6 +78,9 @@ const removeCompany = async (req, res) => {
 
     try {
         const deletedCompany = await db.Company.findByPk(id);
+        if (!deletedCompany) {
+            return res.status(404).send({ isDeleted: false, error: 'Company not found' });
+        }
         await db.Company.destroy({
             where: {
                 id: id

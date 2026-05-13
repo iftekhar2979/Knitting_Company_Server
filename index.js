@@ -21,6 +21,7 @@ const deliveryManRoute = require("./Routes/EmployeeRoute/deliveryManRoute")
 const dashboardRoute = require("./Routes/Dashboard/dashboardRoute");
 const { generateHashedPassword } = require('./utils/generateHashedPassword.js');
 const { verifyEmailConnection } = require('./utils/mail.js');
+const { notFound, errorHandler } = require('./Middlewares/errorMiddleware.js');
 
 const app = express();
 app.use(express.json())
@@ -50,6 +51,16 @@ app.get('/api', async (req, res) => {
   }
 })
 
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.sequelize.authenticate();
+    res.status(200).json({ status: 'Database connected' });
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({ status: 'Database error', error: error.message });
+  }
+})
+
 app.use(companyRouter)
 app.use(orderRouter)
 app.use(deliveryRoute)
@@ -72,6 +83,9 @@ app.get('/check-db', async (req, res) => {
     res.status(500).send({ message: 'Failed to connect to the database.', error });
   }
 });
+
+app.use(notFound)
+app.use(errorHandler)
 
 async function seedAdmin() {
   const hashedPassword = await generateHashedPassword(config.ADMIN_PASSWORD);
@@ -126,4 +140,8 @@ const startServer = async () => {
   });
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };

@@ -7,8 +7,8 @@ const generateToken = (res, email) => {
       expiresIn: config.JWT_EXPIRES_AT,
     });
 
-    res.cookie(config.COKKIE_NAME, token, {
-      httpOnly: config.NODE_ENV === "Production",
+    res.cookie(config.COOKIE_NAME, token, {
+      httpOnly: true,
       secure: config.NODE_ENV === "Production",
       sameSite: config.NODE_ENV === "Production" ? "None" : "Strict",
       maxAge: config.COKKIE_AGE,

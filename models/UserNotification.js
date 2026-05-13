@@ -21,7 +21,7 @@ module.exports = (sequelize) => {
       defaultValue: false,
     },
   }, {
-    tableName: 'UserNotification',
+    tableName: 'user_notifications',
     timestamps: false,
     indexes: [
       {

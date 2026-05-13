@@ -7,6 +7,10 @@ const {
     logoutUser, 
     getUserProfile, 
     updateUserProfile,
+    getSingleUser,
+    createUser,
+    updateUser,
+    removeUser,
     forgotPassword,
     resendOTP,
     verifyOTP,
@@ -17,8 +21,7 @@ const { protect } = require('../../Middlewares/protectMiddleware');
 
 const router = express.Router()
 
-// Registration /api/users/signup
-// router.route("/api/signup").post(registerUser);
+router.route("/api/signup").post(registerUser);
 
 // Login /api/users/signin
 router.route("/api/signin").post(loginUser);
@@ -40,4 +43,6 @@ router.route("/api/profile").put(protect, updateUserProfile);
 
 // Get All Users
 router.route("/api/allusers").get(getAllUsers);
+router.route("/api/user").get(protect, getAllUsers).post(protect, createUser);
+router.route("/api/user/:id").get(protect, getSingleUser).patch(protect, updateUser).delete(protect, removeUser);
 module.exports=router

@@ -9,6 +9,9 @@ const getSingleBuyer = async (req, res) => {
                 id: buyerId,
             },
         });
+        if (!buyer) {
+            return res.status(404).send({ message: 'Buyer not found' });
+        }
         res.status(200).send(buyer);
     } catch (error) {
         res.status(404).send(error);
@@ -36,6 +39,10 @@ const updateBuyer = async (req, res) => {
     const id = parseFloat(req.params.id)
     const updatedBody = req.body
     try {
+        const buyer = await db.Buyer.findByPk(id);
+        if (!buyer) {
+            return res.status(404).send({ isUpdated: false, error: 'Buyer not found' });
+        }
         await db.Buyer.update(updatedBody, {
             where: {
                 id: id
@@ -54,6 +61,9 @@ const removeBuyer = async (req, res) => {
 
     try {
         const deletedBuyer = await db.Buyer.findByPk(id);
+        if (!deletedBuyer) {
+            return res.status(404).send({ isDeleted: false, error: 'Buyer not found' });
+        }
         await db.Buyer.destroy({
             where: {
                 id: id

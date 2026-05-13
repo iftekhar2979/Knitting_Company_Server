@@ -5,25 +5,26 @@ const asyncHandler = require('express-async-handler');
 const db = require('../models');
 
 const protect = asyncHandler(async (req, res, next) => {
-  let token;
-  token = req.cookies?.jwt
+  const token = req.cookies?.[config.COOKIE_NAME]
 
-  // console.log("token",token)
   if (token) {
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET);
-      console.log(decoded)
       const user = await db.User.findOne({
         where: {
           email: decoded.email,
         },
 
       });
+      if (!user) {
+        res.status(401);
+        throw new Error(`Not Authorized, User not found`);
+      }
       req.user = user
       next();
     } catch (err) {
       res.status(401);
-      throw new Error(`Not Authorized, Invalid Token`);
+      throw new Error(err.message || `Not Authorized, Invalid Token`);
     }
   } else {
     res.status(401);
@@ -32,33 +33,34 @@ const protect = asyncHandler(async (req, res, next) => {
 });
 
 const adminProtect = asyncHandler(async (req, res, next) => {
-  let token;
-
-  token = req.cookies?.jwt
+  const token = req.cookies?.[config.COOKIE_NAME]
 
   if (token) {
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET);
-      req.user = await db.User.findOne({
+      const user = await db.User.findOne({
         where: {
           email: decoded.email,
         },
 
       });
-      // console.log(decoded)
-      if (req.user.isAdmin) {
-        next();
-      } else {
+      if (!user) {
         res.status(401);
-        throw new Error(`Not Authorized`);
+        throw new Error(`Not Authorized, User not found`);
       }
+      if (!user.isAdmin) {
+        res.status(401);
+        throw new Error(`Not Authorized, Admin Access Only`);
+      }
+      req.user = user
+      next();
     } catch (err) {
       res.status(401);
-      throw new Error(`Not Authorized , Admin Access Only`);
+      throw new Error(err.message || `Not Authorized, Invalid Token`);
     }
   } else {
     res.status(401);
-    throw new Error(`Not Authorized, Only Admin`);
+    throw new Error(`Not Authorized, No Token`);
   }
 });
 module.exports = { adminProtect, protect }

@@ -15,6 +15,7 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE(6),
       allowNull: false,
       defaultValue: sequelize.literal('CURRENT_TIMESTAMP(6)'),
+      field: 'created_at',
     },
     content: {
       type: DataTypes.TEXT,
@@ -30,7 +31,7 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
   }, {
-    tableName: 'Post',
+    tableName: 'posts',
     timestamps: false,
   });
 

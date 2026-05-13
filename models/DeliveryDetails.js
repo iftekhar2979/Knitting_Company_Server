@@ -35,6 +35,7 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE(6),
       allowNull: false,
       defaultValue: sequelize.literal('CURRENT_TIMESTAMP(6)'),
+      field: 'created_at',
     },
     deliveredBy: {
       type: DataTypes.TEXT,
@@ -53,7 +54,7 @@ module.exports = (sequelize) => {
       allowNull: true,
     },
   }, {
-    tableName: 'DeliveryDetails',
+    tableName: 'delivery_details',
     timestamps: false,
   });
 

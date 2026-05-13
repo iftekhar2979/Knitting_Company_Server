@@ -25,7 +25,7 @@ module.exports = (sequelize) => {
       unique: true,
     },
   }, {
-    tableName: 'Profile',
+    tableName: 'profiles',
     timestamps: false,
   });
 

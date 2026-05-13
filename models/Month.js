@@ -12,7 +12,7 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
   }, {
-    tableName: 'Month',
+    tableName: 'months',
     timestamps: false,
   });
 

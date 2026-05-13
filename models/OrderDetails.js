@@ -73,7 +73,7 @@ module.exports = (sequelize) => {
       allowNull: true,
     },
   }, {
-    tableName: 'OrderDetails',
+    tableName: 'order_details',
     timestamps: false,
   });
 

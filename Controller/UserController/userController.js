@@ -1,5 +1,4 @@
 const db = require('../../models/index.js');
-const { io } = require('../../index.js');
 const { generateToken } = require('../../utils/generateToken.js')
 const { compareHashPassword, generateHashedPassword, } = require('../../utils/generateHashedPassword.js')
 const asyncHandler = require('express-async-handler')
@@ -13,7 +12,10 @@ const { Op } = require('sequelize');
 const registerUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   // Check Inputs
-  if (!email || !password) throw new Error(`Provide All User Details`);
+  if (!email || !password) {
+    res.status(400);
+    throw new Error(`Provide All User Details`);
+  }
 
   // Check Exicting User
   const existingUser = await db.User.findOne({
@@ -23,7 +25,10 @@ const registerUser = asyncHandler(async (req, res) => {
 
   });
 
-  if (existingUser) throw new Error(`User Already Exists`);
+  if (existingUser) {
+    res.status(400);
+    throw new Error(`User Already Exists`);
+  }
 
   // Register New User
   const hashedPassword = await generateHashedPassword(password);
@@ -32,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
     email, password: hashedPassword 
   });
   if (newUser) {
-    generateToken(res, newUser.id);
+    generateToken(res, newUser.email);
     res.status(201).json({
       _id: newUser.id,
       name: newUser.name,
@@ -51,7 +56,10 @@ const registerUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     // Check Inputs
     
-    if (!email || !password) throw new Error(`Provide Valid User Details`);
+    if (!email || !password) {
+      res.status(400);
+      throw new Error(`Provide Valid User Details`);
+    }
   
     // User Data Check
     const validUser = await db.User.findOne({
@@ -60,28 +68,29 @@ const registerUser = asyncHandler(async (req, res) => {
         },
 
     });
-    if (!validUser) throw new Error(`Invalid User Details`);
+    if (!validUser) {
+      return res.status(400).send({ message: "Invalid User Information" });
+    }
     const validPassword = await compareHashPassword(password, validUser.password);
     if (validUser && validPassword) {
-      generateToken(res, validUser.email);
+      const token = generateToken(res, validUser.email);
       const data = {
         email: validUser.email,
         isAdmin: validUser.isAdmin,
-        token:generateToken(res, validUser.email)
+        token
       };
       res.status(200).json({
         data,
         message: `Login Successfull`,
       });
     } else {
-      res.status(400).send({message:"Invalid User Information"});
-      throw new Error(`Invalid User Details`);
+      return res.status(400).send({message:"Invalid User Information"});
     }
   });
   
   // Logout
    const logoutUser = asyncHandler(async (req, res) => {
-    res.cookie("jwt", "", {
+    res.cookie(config.COOKIE_NAME, "", {
       httpOnly: true,
       expires: new Date(0),
     });
@@ -143,6 +152,9 @@ const getSingleUser = async (req, res) => {
             },
 
         });
+        if (!user) {
+          return res.status(404).send({ message: 'User not found' });
+        }
         res.status(200).send(user);
     } catch (error) {
         res.status(404).send(error);
@@ -159,6 +171,9 @@ const getAllUsers = async (req, res) => {
 const createUser=async(req,res)=>{
     const body=req.body
     try {
+        if (body.password) {
+          body.password = await generateHashedPassword(body.password);
+        }
         const newUser = await db.User.create(body);
        return res.status(200).send(newUser);
     } catch (error) {
@@ -170,6 +185,13 @@ const updateUser = async (req, res) => {
     const id=parseFloat(req.params.id)
     const updatedBody = req.body
     try {
+        const user = await db.User.findByPk(id);
+        if (!user) {
+            return res.status(404).send({isUpdated:false, error:'User not found'});
+        }
+        if (updatedBody.password) {
+          updatedBody.password = await generateHashedPassword(updatedBody.password);
+        }
         const [updatedRowsCount, updatedUsers] = await db.User.update(updatedBody, {
             where:{
                 id:id
@@ -189,6 +211,9 @@ const removeUser=async(req,res)=>{
     
     try {
         const deletedUser = await db.User.findByPk(id);
+        if (!deletedUser) {
+            return res.status(404).send({isDeleted:false ,error:'User not found'});
+        }
         await db.User.destroy({
             where:{
                 id:id
@@ -204,10 +229,16 @@ const removeUser=async(req,res)=>{
 }
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  if (!email) throw new Error("Please provide your email");
+  if (!email) {
+    res.status(400);
+    throw new Error("Please provide your email");
+  }
 
   const user = await db.User.findOne({ where: { email } });
-  if (!user) throw new Error("User not found with this email");
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found with this email");
+  }
 
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -228,7 +259,16 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 const resendOTP = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  if (!email) throw new Error("Please provide your email");
+  if (!email) {
+    res.status(400);
+    throw new Error("Please provide your email");
+  }
+
+  const user = await db.User.findOne({ where: { email } });
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found with this email");
+  }
 
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -250,7 +290,10 @@ const resendOTP = asyncHandler(async (req, res) => {
 
 const verifyOTP = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
-  if (!email || !otp) throw new Error("Please provide email and OTP");
+  if (!email || !otp) {
+    res.status(400);
+    throw new Error("Please provide email and OTP");
+  }
 
   const otpRecord = await db.PasswordOTP.findOne({
     where: { 
@@ -260,7 +303,10 @@ const verifyOTP = asyncHandler(async (req, res) => {
     },
   });
 
-  if (!otpRecord) throw new Error("Invalid or expired OTP");
+  if (!otpRecord) {
+    res.status(400);
+    throw new Error("Invalid or expired OTP");
+  }
 
   // Generate a temporary reset token (JWT)
   const resetToken = jwt.sign({ email }, config.JWT_SECRET, { expiresIn: '15m' });
@@ -270,7 +316,10 @@ const verifyOTP = asyncHandler(async (req, res) => {
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { resetToken, newPassword } = req.body;
-  if (!resetToken || !newPassword) throw new Error("Please provide reset token and new password");
+  if (!resetToken || !newPassword) {
+    res.status(400);
+    throw new Error("Please provide reset token and new password");
+  }
 
   try {
     const decoded = jwt.verify(resetToken, config.JWT_SECRET);
@@ -287,6 +336,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (err) {
+    res.status(400);
     throw new Error("Invalid or expired reset token");
   }
 });
@@ -302,5 +352,9 @@ module.exports = {
   resendOTP, 
   verifyOTP, 
   resetPassword 
+  , getSingleUser
+  , createUser
+  , updateUser
+  , removeUser
 }
 

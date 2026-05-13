@@ -31,17 +31,19 @@ module.exports = (sequelize) => {
     createdAt: {
       type: DataTypes.DATE(6),
       defaultValue: sequelize.literal('CURRENT_TIMESTAMP(6)'),
+      field: 'created_at',
     },
     updatedAt: {
       type: DataTypes.DATE(6),
       allowNull: true,
+      field: 'updated_at',
     },
     isBlock: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
   }, {
-    tableName: 'User',
+    tableName: 'users',
     timestamps: false, // Managed manually in the schema provided
   });
 
