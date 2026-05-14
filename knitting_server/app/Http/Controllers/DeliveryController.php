@@ -148,8 +148,12 @@ class DeliveryController extends Controller
                 throw new \RuntimeException('Must need unit price to create bill!');
             }
 
-            $delivery = DeliveryDetails::findOrFail((int) $request->input('chalanId'));
-            $delivery->update(['unitPrice' => $request->input('unitPrice')]);
+            $updatedCount = DeliveryDetails::where('id', (int) $request->input('chalanId'))
+                ->update(['unitPrice' => $request->input('unitPrice')]);
+
+            if ($updatedCount === 0) {
+                throw new \RuntimeException('Bill Not Created Successfully!');
+            }
 
             return response()->json(['status' => 200, 'message' => 'Bill Successfully created!']);
         } catch (\Throwable $e) {
@@ -160,11 +164,15 @@ class DeliveryController extends Controller
     public function showBill($id)
     {
         try {
-            $delivery = DeliveryDetails::select('id', 'deliveredQuantity', 'unitPrice', 'billNumber', 'created_at', 'orderId')
+            if (!(float) $id) {
+                throw new \RuntimeException('Bill id not provided!');
+            }
+
+            $delivery = DeliveryDetails::selectRaw('id, deliveredQuantity, unitPrice, billNumber, created_at as createdAt, orderId')
                 ->with(['order' => fn ($query) => $query
                     ->select('id', 'season', 'fabricsName', 'programNumber', 'jobNumber', 'sbNumber', 'bookingNumber', 'buyerId', 'companyId')
                     ->with(['buyer', 'company'])])
-                ->findOrFail($id);
+                ->find($id);
 
             return response()->json($delivery);
         } catch (\Throwable $e) {
@@ -174,58 +182,70 @@ class DeliveryController extends Controller
 
     public function billIndex(Request $request)
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $limit = max(1, (int) $request->query('limit', 50));
-        $sort = strtoupper($request->query('sort', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        try {
+            $page = max(1, (int) $request->query('page', 1));
+            $limit = max(1, (int) $request->query('limit', 50));
+            $sort = strtoupper($request->query('sort', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
-        $query = DeliveryDetails::select('id', 'deliveredQuantity', 'unitPrice', 'created_at', 'billNumber', 'orderId')
-            ->whereNotNull('unitPrice')
-            ->with(['order' => fn ($query) => $query
-                ->select('id', 'season', 'fabricsName', 'programNumber', 'jobNumber', 'sbNumber', 'bookingNumber', 'buyerId', 'companyId')
-                ->with(['buyer', 'company'])]);
+            $query = DeliveryDetails::selectRaw('id, deliveredQuantity, unitPrice, created_at as createdAt, billNumber, orderId')
+                ->whereNotNull('unitPrice')
+                ->with(['order' => fn ($query) => $query
+                    ->select('id', 'season', 'fabricsName', 'programNumber', 'jobNumber', 'sbNumber', 'bookingNumber', 'buyerId', 'companyId')
+                    ->with(['buyer', 'company'])]);
 
-        if ($request->filled('term')) {
-            $term = $request->query('term');
-            $query->where(function ($query) use ($term) {
-                $query->where('billNumber', 'like', '%'.$term.'%');
-                if (is_numeric($term)) {
-                    $query->orWhere('id', (int) $term);
+            if ($request->filled('term')) {
+                $term = $request->query('term');
+                $query->where(function ($query) use ($term) {
+                    $query->where('billNumber', 'like', '%'.$term.'%');
+                    if (is_numeric($term)) {
+                        $query->orWhere('id', (int) $term);
+                    }
+                });
+            }
+
+            $query->whereHas('order', function ($query) use ($request) {
+                if ($request->filled('buyerName')) {
+                    $query->whereHas('buyer', fn ($buyer) => $buyer->where('buyerName', 'like', '%'.$request->query('buyerName').'%'));
+                }
+                if ($request->filled('companyName')) {
+                    $query->whereHas('company', fn ($company) => $company->where('companyName', 'like', '%'.$request->query('companyName').'%'));
                 }
             });
+
+            $total = (clone $query)->count();
+            $data = $query->orderBy('created_at', $sort)->skip(($page - 1) * $limit)->take($limit)->get();
+
+            return response()->json(['data' => $data, 'total' => $total, 'page' => $page, 'limit' => $limit]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
-
-        $query->whereHas('order', function ($query) use ($request) {
-            if ($request->filled('buyerName')) {
-                $query->whereHas('buyer', fn ($buyer) => $buyer->where('buyerName', 'like', '%'.$request->query('buyerName').'%'));
-            }
-            if ($request->filled('companyName')) {
-                $query->whereHas('company', fn ($company) => $company->where('companyName', 'like', '%'.$request->query('companyName').'%'));
-            }
-        });
-
-        $total = (clone $query)->count();
-        $data = $query->orderBy('created_at', $sort)->skip(($page - 1) * $limit)->take($limit)->get();
-
-        return response()->json(['data' => $data, 'total' => $total, 'page' => $page, 'limit' => $limit]);
     }
 
     public function changeBillNumber(Request $request, $id)
     {
-        $delivery = DeliveryDetails::where('id', $id)->whereNotNull('unitPrice')->first();
-        if (!$delivery) {
-            return response()->json(['message' => 'Bill not found or unit price is null'], 404);
+        try {
+            $updatedCount = DeliveryDetails::where('id', $id)
+                ->whereNotNull('unitPrice')
+                ->update(['billNumber' => $request->query('billNumber')]);
+
+            if ($updatedCount === 0) {
+                return response()->json(['message' => 'Bill not found or unit price is null'], 404);
+            }
+
+            return response()->json(DeliveryDetails::find($id));
+        } catch (\Throwable $e) {
+            return response()->json($e->getMessage(), 400);
         }
-
-        $delivery->update(['billNumber' => $request->query('billNumber')]);
-
-        return response()->json($delivery);
     }
 
     public function deleteBill($id)
     {
-        $delivery = DeliveryDetails::findOrFail($id);
-        $delivery->update(['unitPrice' => null, 'billNumber' => null]);
+        try {
+            DeliveryDetails::where('id', $id)->update(['unitPrice' => null, 'billNumber' => null]);
 
-        return response()->json($delivery);
+            return response()->json(DeliveryDetails::find($id));
+        } catch (\Throwable $e) {
+            return response()->json($e->getMessage(), 400);
+        }
     }
 }

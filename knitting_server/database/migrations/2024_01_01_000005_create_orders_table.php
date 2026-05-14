@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('jobNumber')->nullable();
             $table->text('bookingNumber')->nullable();
             $table->text('sbNumber')->nullable();
-            $table->timestamp('orderedDate');
+            $table->timestamp('orderedDate')->useCurrent();
             $table->timestamp('targetDate')->nullable();
             $table->double('orderQuantity');
             $table->double('deliveredQuantity')->default(0);

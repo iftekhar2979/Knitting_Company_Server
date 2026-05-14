@@ -9,15 +9,39 @@ use Illuminate\Support\Facades\DB;
 
 class YarnDetailsController extends Controller
 {
+    private const YARN_FIELDS = [
+        'companyId',
+        'ReceivingQuantity',
+        'restQuantity',
+        'yarnType',
+        'descriptionOfYarn',
+        'orderId',
+    ];
+
+    private const RETURNED_YARN_FIELDS = [
+        'westQuantity',
+        'role',
+        'vechileNumber',
+        'deliveredBy',
+    ];
+
     public function showByOrder($id)
     {
-        return response()->json(YarnInformation::with(['company:id,companyName,location', 'details'])->where('orderId', $id)->get());
+        try {
+            return response()->json(
+                YarnInformation::with(['company:id,companyName,location', 'details'])
+                    ->where('orderId', $id)
+                    ->get()
+            );
+        } catch (\Throwable $e) {
+            return response()->json($e->getMessage(), 404);
+        }
     }
 
     public function store(Request $request)
     {
         try {
-            return response()->json(YarnInformation::create($request->all()));
+            return response()->json(YarnInformation::create($this->yarnData($request)));
         } catch (\Throwable $e) {
             return response($e->getMessage(), 400);
         }
@@ -26,12 +50,8 @@ class YarnDetailsController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            YarnInformation::where('id', $id)->update($this->yarnData($request));
             $yarn = YarnInformation::find($id);
-            if (!$yarn) {
-                return response()->json(['isUpdated' => false, 'error' => 'Yarn information not found'], 404);
-            }
-
-            $yarn->update($request->all());
 
             return response()->json(['isUpdated' => true, 'updatedOrder' => $yarn]);
         } catch (\Throwable $e) {
@@ -43,7 +63,7 @@ class YarnDetailsController extends Controller
     {
         try {
             $yarn = YarnInformation::find($id);
-            optional($yarn)->delete();
+            YarnInformation::where('id', $id)->delete();
 
             return response()->json(['isDeleted' => true, 'updatedOrder' => $yarn]);
         } catch (\Throwable $e) {
@@ -64,7 +84,7 @@ class YarnDetailsController extends Controller
 
                 $yarn->decrement('restQuantity', $amount);
 
-                $detailBody = $request->except(['from', 'amount']);
+                $detailBody = $request->only(self::RETURNED_YARN_FIELDS);
                 $detailBody['yarnInfoID'] = $yarn->id;
                 $detailBody['returnQuantity'] = $amount;
                 YarnInformationWithDetails::create($detailBody);
@@ -98,5 +118,10 @@ class YarnDetailsController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage(), 'isDeleted' => false], 400);
         }
+    }
+
+    private function yarnData(Request $request): array
+    {
+        return $request->only(self::YARN_FIELDS);
     }
 }

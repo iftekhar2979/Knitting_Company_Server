@@ -4,18 +4,73 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+    private const ORDER_FIELDS = [
+        'orderNumber',
+        'companyId',
+        'buyerId',
+        'companyName',
+        'fabricsName',
+        'fabricsId',
+        'buyerName',
+        'season',
+        'programNumber',
+        'jobNumber',
+        'bookingNumber',
+        'sbNumber',
+        'orderedDate',
+        'targetDate',
+        'orderQuantity',
+        'deliveredQuantity',
+        'restQuantity',
+        'unit',
+        'status',
+        'isBillCreated',
+        'isProformaInvoiceCreated',
+        'userId',
+        'billNumber',
+        'unitPrice',
+        'proformaInvoiceId',
+    ];
+
+    private const REQUIRED_CREATE_FIELDS = [
+        'orderNumber',
+        'companyId',
+        'fabricsName',
+        'buyerName',
+        'orderQuantity',
+        'restQuantity',
+        'unit',
+        'companyName',
+        'buyerId',
+        'fabricsId',
+        'season',
+        'programNumber',
+        'jobNumber',
+        'bookingNumber',
+        'sbNumber',
+        'targetDate',
+        'status',
+    ];
+
     public function index(Request $request)
     {
-        return response()->json($this->paginateOrders($request, false));
+        try {
+            return response()->json($this->paginateOrders($request, false));
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
     }
 
     public function invoiceIndex(Request $request)
     {
-        return response()->json($this->paginateOrders($request, true));
+        try {
+            return response()->json($this->paginateOrders($request, true));
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
     }
 
     private function paginateOrders(Request $request, bool $invoice)
@@ -24,12 +79,15 @@ class OrderController extends Controller
         $limit = max(1, (int) $request->query('limit', 30));
         $sort = strtoupper($request->query('sort', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
-        $query = Order::query()
-            ->with([
+        $query = Order::query();
+
+        if (!$invoice) {
+            $query->with([
                 'company' => fn ($query) => $query->select('id', 'companyName'),
                 'buyer' => fn ($query) => $query->select('id', 'buyerName'),
                 'fabricsType' => fn ($query) => $query->select('id', 'fabricsName'),
             ]);
+        }
 
         foreach (['orderNumber', 'season', 'status'] as $field) {
             if (!$invoice && $request->filled($field)) {
@@ -75,24 +133,41 @@ class OrderController extends Controller
 
     public function show($id)
     {
-        return response()->json(Order::with('company')->find($id));
+        try {
+            return response()->json(Order::with('company')->find($id));
+        } catch (\Throwable $e) {
+            return response()->json($e->getMessage(), 404);
+        }
     }
 
     public function editShow($id)
     {
-        return response()->json(Order::with(['company', 'buyer', 'fabricsType', 'details'])->find($id));
+        try {
+            return response()->json(Order::with(['company', 'buyer', 'fabricsType', 'details'])->find($id));
+        } catch (\Throwable $e) {
+            return response()->json($e->getMessage(), 404);
+        }
     }
 
     public function quantityInfo($id)
     {
-        return response()->json(Order::select('orderQuantity', 'restQuantity', 'deliveredQuantity', 'status')->find($id));
+        try {
+            return response()->json(Order::select('orderQuantity', 'restQuantity', 'deliveredQuantity', 'status')->find($id));
+        } catch (\Throwable $e) {
+            return response()->json($e->getMessage(), 404);
+        }
     }
 
     public function store(Request $request)
     {
         try {
-            $body = $request->all();
+            if (!$this->isValidCreatePayload($request)) {
+                return response()->json(['message' => 'Invalid request data'], 400);
+            }
+
+            $body = $this->orderData($request);
             $body['buyerId'] = $body['buyerId'] ?? null;
+            $body['orderedDate'] = $body['orderedDate'] ?? now();
 
             if (!empty($body['orderNumber']) && Order::where('orderNumber', $body['orderNumber'])->exists()) {
                 return response()->json(['message' => 'Order number already exists'], 400);
@@ -107,12 +182,8 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            Order::where('id', $id)->update($this->orderData($request));
             $order = Order::find($id);
-            if (!$order) {
-                return response()->json(['isUpdated' => false, 'error' => 'Order not found'], 404);
-            }
-
-            $order->update($request->all());
 
             return response()->json(['isUpdated' => true, 'updatedOrder' => $order]);
         } catch (\Throwable $e) {
@@ -124,7 +195,7 @@ class OrderController extends Controller
     {
         try {
             $order = Order::find($id);
-            optional($order)->delete();
+            Order::where('id', $id)->delete();
 
             return response()->json(['isDeleted' => true, 'updatedOrder' => $order]);
         } catch (\Throwable $e) {
@@ -137,8 +208,13 @@ class OrderController extends Controller
         $orderNumbers = collect($request->all())->map(fn ($number) => (string) $number)->values();
 
         try {
-            $companyCount = Order::whereIn('orderNumber', $orderNumbers)->distinct('companyId')->count('companyId');
-            if ($companyCount > 1) {
+            $ordersCheck = Order::query()
+                ->select('companyId')
+                ->whereIn('orderNumber', $orderNumbers)
+                ->groupBy('companyId')
+                ->get();
+
+            if ($ordersCheck->count() > 1) {
                 return response('Order numbers belong to different companies and Different Buyers', 404);
             }
 
@@ -170,5 +246,36 @@ class OrderController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['error' => 'An error occurred while updating the order status'], 500);
         }
+    }
+
+    private function orderData(Request $request): array
+    {
+        return $request->only(self::ORDER_FIELDS);
+    }
+
+    private function isValidCreatePayload(Request $request): bool
+    {
+        foreach (self::REQUIRED_CREATE_FIELDS as $field) {
+            if (!$request->has($field) || $request->input($field) === null || $request->input($field) === '') {
+                return false;
+            }
+        }
+
+        return $this->isPositiveInteger($request->input('companyId'))
+            && $this->isPositiveInteger($request->input('buyerId'))
+            && $this->isPositiveInteger($request->input('fabricsId'))
+            && $this->isPositiveNumber($request->input('orderQuantity'))
+            && is_numeric($request->input('restQuantity'))
+            && (float) $request->input('restQuantity') >= 0;
+    }
+
+    private function isPositiveInteger(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_INT) !== false && (int) $value > 0;
+    }
+
+    private function isPositiveNumber(mixed $value): bool
+    {
+        return is_numeric($value) && (float) $value > 0;
     }
 }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BillInformation extends Model
 {
+    protected $table = 'bill_informations';
+
     protected $fillable = [
         'billNumber',
         'unitPrice',
@@ -17,6 +19,7 @@ class BillInformation extends Model
         'companyId',
         'buyerId',
         'fabricsId',
+        'created_at',
     ];
 
     public function company(): BelongsTo

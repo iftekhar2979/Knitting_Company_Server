@@ -4,65 +4,44 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\PasswordOTP;
+use App\Support\JwtToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Cookie;
-use Firebase\JWT\JWT;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Firebase\JWT\Key;
 
 class UserController extends Controller
 {
     private function generateToken($email)
     {
-        $secret = Config::get('jwt.secret');
-        $expiresAt = time() + 86400; // 1 day
-        $payload = [
-            'email' => $email,
-            'exp' => $expiresAt,
-        ];
-
-        $token = JWT::encode($payload, $secret, 'HS256');
-
-        Cookie::queue(
-            Config::get('jwt.cookie_name', 'jwt'),
-            $token,
-            1440, // minutes
-            '/',
-            null,
-            false, // secure
-            true, // httpOnly
-            false,
-            'Strict'
-        );
-
-        return $token;
+        return JwtToken::forEmail($email);
     }
 
     public function register(Request $request)
     {
         $request->validate([
+            'name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required',
         ]);
 
         $user = User::create([
+            'name' => $request->name ?: Str::before($request->email, '@'),
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
 
         if ($user) {
-            $this->generateToken($user->email);
+            $token = $this->generateToken($user->email);
+
             return response()->json([
                 '_id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'isAdmin' => $user->isAdmin,
                 'message' => 'Registration Successfull',
-            ], 201);
+            ], 201)->withCookie(JwtToken::makeCookie($token));
         }
 
         return response()->json(['message' => 'Invalid User Data'], 400);
@@ -74,9 +53,8 @@ class UserController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
-
+        
         $user = User::where('email', $request->email)->first();
-
         if ($user && Hash::check($request->password, $user->password)) {
             $token = $this->generateToken($user->email);
             return response()->json([
@@ -86,7 +64,7 @@ class UserController extends Controller
                     'token' => $token,
                 ],
                 'message' => 'Login Successfull',
-            ]);
+            ])->withCookie(JwtToken::makeCookie($token));
         }
 
         return response()->json(['message' => 'Invalid User Information'], 400);
@@ -94,13 +72,14 @@ class UserController extends Controller
 
     public function logout()
     {
-        Cookie::queue(Cookie::forget(Config::get('jwt.cookie_name', 'jwt')));
-        return response()->json(['message' => 'User Logged Out ☹️']);
+        return response()
+            ->json(['message' => 'User Logged Out ☹️'])
+            ->withCookie(JwtToken::forgetCookie());
     }
 
     public function getProfile(Request $request)
     {
-        $user = $request->get('user');
+        $user = $request->user();
         if ($user) {
             return response()->json([
                 'data' => [
@@ -116,7 +95,7 @@ class UserController extends Controller
 
     public function updateProfile(Request $request)
     {
-        $user = User::find($request->get('user')->id);
+        $user = $request->user() ? User::find($request->user()->id) : null;
         if ($user) {
             $user->name = $request->name ?? $user->name;
             $user->email = $request->email ?? $user->email;
@@ -221,8 +200,7 @@ class UserController extends Controller
             return response()->json(['message' => 'Invalid or expired OTP'], 400);
         }
 
-        $secret = Config::get('jwt.secret');
-        $resetToken = JWT::encode(['email' => $request->email, 'exp' => time() + 900], $secret, 'HS256');
+        $resetToken = JwtToken::forEmail($request->email, '15m');
 
         return response()->json(['message' => 'OTP verified successfully', 'resetToken' => $resetToken]);
     }
@@ -231,8 +209,7 @@ class UserController extends Controller
     {
         $request->validate(['resetToken' => 'required', 'newPassword' => 'required']);
         try {
-            $secret = Config::get('jwt.secret');
-            $decoded = JWT::decode($request->resetToken, new Key($secret, 'HS256'));
+            $decoded = JwtToken::decode($request->resetToken);
             $email = $decoded->email;
 
             $user = User::where('email', $email)->first();

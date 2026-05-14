@@ -27,6 +27,7 @@ class ProformaInvoice extends Model
         'invoiceQuantity',
         'season',
         'billingWay',
+        'created_at',
     ];
 
     public function company(): BelongsTo
