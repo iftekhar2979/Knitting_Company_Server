@@ -174,6 +174,11 @@ class DeliveryController extends Controller
                     ->with(['buyer', 'company'])])
                 ->find($id);
 
+            if ($delivery) {
+                $delivery->makeHidden(['orderId']);
+                $delivery->order?->makeHidden(['id', 'buyerId', 'companyId']);
+            }
+
             return response()->json($delivery);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()]);

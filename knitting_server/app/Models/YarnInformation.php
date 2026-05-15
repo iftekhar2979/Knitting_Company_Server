@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class YarnInformation extends Model
 {
+    protected $table = 'yarn_informations';
+
     protected $fillable = [
         'companyId',
         'ReceivingQuantity',

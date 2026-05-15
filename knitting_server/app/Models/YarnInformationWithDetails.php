@@ -9,6 +9,8 @@ class YarnInformationWithDetails extends Model
 {
     const UPDATED_AT = null;
 
+    protected $table = 'yarn_information_with_details';
+
     protected $fillable = [
         'yarnInfoID',
         'returnQuantity',

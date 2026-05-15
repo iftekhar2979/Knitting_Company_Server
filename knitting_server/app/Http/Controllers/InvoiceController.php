@@ -283,9 +283,11 @@ class InvoiceController extends Controller
             $orders = Order::with([
                 'company:id,companyName,location',
                 'buyer:id,buyerName',
-                'deliveryDetails' => fn ($query) => $query->select('id', 'orderId', 'created_at', 'deliveredQuantity')->with('order:id,buyerName,sbNumber,programNumber,jobNumber,bookingNumber'),
+                'deliveryDetails' => fn ($query) => $query
+                    ->select('id', 'orderId', 'created_at', 'deliveredQuantity')
+                    ->with('order:id,buyerName,sbNumber,programNumber,jobNumber,bookingNumber'),
             ])->whereIn('orderNumber', $orderNumbers)
-                ->selectRaw('id, companyName, buyerName, fabricsId, fabricsName, deliveredQuantity, season, created_at as createdAt, billNumber, companyId, buyerId, orderNumber')
+                ->select('id', 'companyName', 'buyerName', 'fabricsId', 'fabricsName', 'deliveredQuantity', 'season', 'created_at', 'billNumber', 'companyId', 'buyerId')
                 ->get();
 
             if ($orders->isEmpty()) {
@@ -296,12 +298,47 @@ class InvoiceController extends Controller
             }
 
             $bills = BillInformation::where('billNumber', $orders->first()->billNumber)->get();
-            $orders->each(function ($order) use ($bills) {
+            $response = $orders->map(function ($order) use ($bills) {
                 $bill = $bills->firstWhere('fabricsId', $order->fabricsId);
-                $order->setAttribute('billDetails', $bill ? $this->formatBillInformation($bill) : null);
+
+                $orderData = [
+                    'companyName' => $order->companyName,
+                    'buyerName' => $order->buyerName,
+                    'fabricsId' => $order->fabricsId,
+                    'fabricsName' => $order->fabricsName,
+                    'deliveredQuantity' => $order->deliveredQuantity,
+                    'season' => $order->season,
+                    'createdAt' => $order->created_at,
+                    'billNumber' => $order->billNumber,
+                    'company' => $order->company ? [
+                        'companyName' => $order->company->companyName,
+                        'location' => $order->company->location,
+                    ] : null,
+                    'buyer' => $order->buyer ? [
+                        'buyerName' => $order->buyer->buyerName,
+                    ] : null,
+                    'deliveryDetails' => $order->deliveryDetails->map(fn ($delivery) => [
+                        'createdAt' => $delivery->created_at,
+                        'id' => $delivery->id,
+                        'deliveredQuantity' => $delivery->deliveredQuantity,
+                        'order' => $delivery->order ? [
+                            'buyerName' => $delivery->order->buyerName,
+                            'sbNumber' => $delivery->order->sbNumber,
+                            'programNumber' => $delivery->order->programNumber,
+                            'jobNumber' => $delivery->order->jobNumber,
+                            'bookingNumber' => $delivery->order->bookingNumber,
+                        ] : null,
+                    ])->values(),
+                ];
+
+                if ($bill) {
+                    $orderData['billDetails'] = $this->formatBillInformation($bill);
+                }
+
+                return $orderData;
             });
 
-            return response()->json($orders);
+            return response()->json($response);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage() ?: 'Nothing Found !!!'], 404);
         }
