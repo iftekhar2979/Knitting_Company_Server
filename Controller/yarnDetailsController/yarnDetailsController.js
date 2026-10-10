@@ -26,20 +26,22 @@ const getSingleYarnDetails = async (req, res) => {
 }
 
 const createYarnDetails = async (req, res) => {
-    const yarnBody = req.body
-    console.log(yarnBody)
+    const yarnBody = { ...req.body };
+    if (yarnBody.yarnType === '') yarnBody.yarnType = null;
+    if (yarnBody.descriptionOfYarn === '') yarnBody.descriptionOfYarn = null;
     try {
         const newYarnDetails = await db.YarnInformation.create(yarnBody);
         return res.status(200).send(newYarnDetails);
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return res.status(400).send(error.message);
     }
-
 }
 const updateYarnDetails = async (req, res) => {
-    const id = parseFloat(req.params.id)
-    const updatedBody = req.body
+    const id = parseFloat(req.params.id);
+    const updatedBody = { ...req.body };
+    if (updatedBody.yarnType === '') updatedBody.yarnType = null;
+    if (updatedBody.descriptionOfYarn === '') updatedBody.descriptionOfYarn = null;
     try {
         await db.YarnInformation.update(updatedBody, {
             where: {
@@ -49,7 +51,7 @@ const updateYarnDetails = async (req, res) => {
         const updatedOrder = await db.YarnInformation.findByPk(id);
         return res.status(200).send({ isUpdated: true, updatedOrder });
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return res.status(400).send({ isUpdated: false, error: error.message });
     }
 }

@@ -71,6 +71,7 @@ class InvoiceController extends Controller
                 Order::whereIn('orderNumber', $orderNumbers)->update([
                     'isProformaInvoiceCreated' => true,
                     'proformaInvoiceId' => $containOrders,
+                    'status' => 'Completed',
                 ]);
 
                 return collect($body)->map(function ($item) use ($first, $piNumber, $ordersByFabric, $containOrders) {
@@ -147,6 +148,7 @@ class InvoiceController extends Controller
                     'billNumber' => $billNumber,
                     'isBillCreated' => true,
                     'isProformaInvoiceCreated' => false,
+                    'status' => 'Completed',
                 ]);
 
                 return collect($body)->map(function ($item) use ($first, $billNumber, $ordersByFabric, $containOrders) {
