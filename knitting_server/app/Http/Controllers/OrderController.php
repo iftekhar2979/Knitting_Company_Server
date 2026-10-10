@@ -44,15 +44,6 @@ class OrderController extends Controller
         'restQuantity',
         'unit',
         'companyName',
-        'buyerId',
-        'fabricsId',
-        'season',
-        'programNumber',
-        'jobNumber',
-        'bookingNumber',
-        'sbNumber',
-        'targetDate',
-        'status',
     ];
 
     public function index(Request $request)
@@ -166,7 +157,14 @@ class OrderController extends Controller
             }
 
             $body = $this->orderData($request);
-            $body['buyerId'] = $body['buyerId'] ?? null;
+            $body['buyerId'] = (!empty($body['buyerId']) && (int) $body['buyerId'] > 0) ? (int) $body['buyerId'] : null;
+            $body['fabricsId'] = (!empty($body['fabricsId']) && (int) $body['fabricsId'] > 0) ? (int) $body['fabricsId'] : null;
+            $body['programNumber'] = !empty($body['programNumber']) ? $body['programNumber'] : null;
+            $body['jobNumber'] = !empty($body['jobNumber']) ? $body['jobNumber'] : null;
+            $body['bookingNumber'] = !empty($body['bookingNumber']) ? $body['bookingNumber'] : null;
+            $body['sbNumber'] = !empty($body['sbNumber']) ? $body['sbNumber'] : null;
+            $body['season'] = !empty($body['season']) ? $body['season'] : null;
+            $body['targetDate'] = !empty($body['targetDate']) ? $body['targetDate'] : null;
             $body['orderedDate'] = $body['orderedDate'] ?? now();
 
             if (!empty($body['orderNumber']) && Order::where('orderNumber', $body['orderNumber'])->exists()) {
@@ -182,7 +180,24 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            Order::where('id', $id)->update($this->orderData($request));
+            $data = $this->orderData($request);
+            if (array_key_exists('programNumber', $data) && empty($data['programNumber'])) {
+                $data['programNumber'] = null;
+            }
+            if (array_key_exists('jobNumber', $data) && empty($data['jobNumber'])) {
+                $data['jobNumber'] = null;
+            }
+            if (array_key_exists('bookingNumber', $data) && empty($data['bookingNumber'])) {
+                $data['bookingNumber'] = null;
+            }
+            if (array_key_exists('sbNumber', $data) && empty($data['sbNumber'])) {
+                $data['sbNumber'] = null;
+            }
+            if (array_key_exists('season', $data) && empty($data['season'])) {
+                $data['season'] = null;
+            }
+
+            Order::where('id', $id)->update($data);
             $order = Order::find($id);
 
             return response()->json(['isUpdated' => true, 'updatedOrder' => $order]);
@@ -256,14 +271,20 @@ class OrderController extends Controller
     private function isValidCreatePayload(Request $request): bool
     {
         foreach (self::REQUIRED_CREATE_FIELDS as $field) {
-            if (!$request->has($field) || $request->input($field) === null || $request->input($field) === '') {
+            if (!$request->has($field) || $request->input($field) === null || trim((string) $request->input($field)) === '') {
                 return false;
             }
         }
 
+        $buyerId = $request->input('buyerId');
+        $validBuyer = $buyerId === null || $buyerId === '' || $buyerId === 0 || $buyerId === '0' || $this->isPositiveInteger($buyerId);
+
+        $fabricsId = $request->input('fabricsId');
+        $validFabrics = $fabricsId === null || $fabricsId === '' || $this->isPositiveInteger($fabricsId);
+
         return $this->isPositiveInteger($request->input('companyId'))
-            && $this->isPositiveInteger($request->input('buyerId'))
-            && $this->isPositiveInteger($request->input('fabricsId'))
+            && $validBuyer
+            && $validFabrics
             && $this->isPositiveNumber($request->input('orderQuantity'))
             && is_numeric($request->input('restQuantity'))
             && (float) $request->input('restQuantity') >= 0;

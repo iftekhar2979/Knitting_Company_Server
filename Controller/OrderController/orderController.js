@@ -245,7 +245,7 @@ const getSingleOrderQuantityInfo = async (req, res) => {
 }
 
 const createOrder = async (req, res) => {
-    const orderBody = req.body
+    const orderBody = { ...req.body }
     if (!orderBody.buyerId) {
         orderBody.buyerId = null
     }
@@ -262,6 +262,13 @@ const createOrder = async (req, res) => {
             }
         }
 
+        if (orderBody.programNumber === '') orderBody.programNumber = null;
+        if (orderBody.jobNumber === '') orderBody.jobNumber = null;
+        if (orderBody.bookingNumber === '') orderBody.bookingNumber = null;
+        if (orderBody.sbNumber === '') orderBody.sbNumber = null;
+        if (orderBody.season === '') orderBody.season = null;
+        if (orderBody.targetDate === '') orderBody.targetDate = null;
+
         const newOrder = await db.Order.create(orderBody);
 
         return res.status(200).send(newOrder);
@@ -272,8 +279,15 @@ const createOrder = async (req, res) => {
 
 const updateOrder = async (req, res) => {
     const id = parseFloat(req.params.id)
-    const updatedBody = req.body
+    const updatedBody = { ...req.body }
     try {
+        if (updatedBody.programNumber === '') updatedBody.programNumber = null;
+        if (updatedBody.jobNumber === '') updatedBody.jobNumber = null;
+        if (updatedBody.bookingNumber === '') updatedBody.bookingNumber = null;
+        if (updatedBody.sbNumber === '') updatedBody.sbNumber = null;
+        if (updatedBody.season === '') updatedBody.season = null;
+        if (updatedBody.targetDate === '') updatedBody.targetDate = null;
+
         await db.Order.update(updatedBody, {
             where: {
                 id: id
