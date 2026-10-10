@@ -35,8 +35,16 @@ class YarnDetailsController extends Controller
     public function store(Request $request)
     {
         try {
+            $data = $this->yarnData($request);
+            if (array_key_exists('yarnType', $data) && ($data['yarnType'] === '' || $data['yarnType'] === null)) {
+                $data['yarnType'] = null;
+            }
+            if (array_key_exists('descriptionOfYarn', $data) && ($data['descriptionOfYarn'] === '' || $data['descriptionOfYarn'] === null)) {
+                $data['descriptionOfYarn'] = null;
+            }
+
             return response()->json(
-                $this->formatYarnInformation(YarnInformation::create($this->yarnData($request)))
+                $this->formatYarnInformation(YarnInformation::create($data))
             );
         } catch (\Throwable $e) {
             return response($e->getMessage(), 400);
@@ -46,7 +54,15 @@ class YarnDetailsController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            YarnInformation::where('id', $id)->update($this->yarnData($request));
+            $data = $this->yarnData($request);
+            if (array_key_exists('yarnType', $data) && ($data['yarnType'] === '' || $data['yarnType'] === null)) {
+                $data['yarnType'] = null;
+            }
+            if (array_key_exists('descriptionOfYarn', $data) && ($data['descriptionOfYarn'] === '' || $data['descriptionOfYarn'] === null)) {
+                $data['descriptionOfYarn'] = null;
+            }
+
+            YarnInformation::where('id', $id)->update($data);
             $yarn = YarnInformation::find($id);
 
             return response()->json([

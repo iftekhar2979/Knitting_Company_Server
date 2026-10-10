@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "start": "nodemon index.js",
-    "dev": "nodemon --watch index.js",
+    "start": "node api.js && nodemon index.js",
+    "dev": "node api.js && nodemon --watch index.js",
     "migrate": "node scripts/migrate.js up",
     "migrate:check": "node scripts/migrate.js check",
     "check": "node --check index.js && node --check scripts/migrate.js"
