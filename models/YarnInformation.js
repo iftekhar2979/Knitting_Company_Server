@@ -21,11 +21,11 @@ module.exports = (sequelize) => {
     },
     yarnType: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     descriptionOfYarn: {
       type: DataTypes.TEXT('long'),
-      allowNull: false,
+      allowNull: true,
     },
     orderId: {
       type: DataTypes.INTEGER,

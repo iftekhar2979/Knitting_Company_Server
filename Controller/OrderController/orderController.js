@@ -162,7 +162,8 @@ const getAllOrderForInvoice = async (req, res) => {
                 'orderQuantity',
                 'buyerName',
                 'isBillCreated',
-                'isProformaInvoiceCreated'
+                'isProformaInvoiceCreated',
+                'status'
             ],
             include: [
                 { model: db.Company, as: 'company', attributes: [] },

@@ -13,8 +13,8 @@ return new class extends Migration
             $table->foreignId('companyId')->constrained('companies')->onDelete('cascade');
             $table->double('ReceivingQuantity');
             $table->double('restQuantity');
-            $table->text('yarnType');
-            $table->longText('descriptionOfYarn');
+            $table->text('yarnType')->nullable();
+            $table->longText('descriptionOfYarn')->nullable();
             $table->foreignId('orderId')->constrained('orders')->onDelete('cascade');
             $table->timestamps();
         });
