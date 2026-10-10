@@ -54,6 +54,7 @@ async function transfer(orderArrays, body) {
         await db.Order.update({
             isProformaInvoiceCreated: true,
             proformaInvoiceId: body[0].containOrders,
+            status: 'Completed',
         }, {
             where: {
                 orderNumber: {
@@ -111,6 +112,7 @@ async function transferToBill(orderArrays, body) {
             billNumber: billNumber,
             isBillCreated: true,
             isProformaInvoiceCreated: false,
+            status: 'Completed',
         }, {
             where: {
                 orderNumber: {

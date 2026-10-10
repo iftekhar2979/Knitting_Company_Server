@@ -104,7 +104,7 @@ class OrderController extends Controller
         $total = (clone $query)->count();
 
         if ($invoice) {
-            $query->select('id', 'companyName', 'orderNumber', 'fabricsName', 'orderQuantity', 'buyerName', 'isBillCreated', 'isProformaInvoiceCreated')
+            $query->select('id', 'companyName', 'orderNumber', 'fabricsName', 'orderQuantity', 'buyerName', 'isBillCreated', 'isProformaInvoiceCreated', 'status')
                 ->orderBy('orderQuantity', $sort)
                 ->orderByDesc('created_at');
         } else {
